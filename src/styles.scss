@@ -1,1 +1,31 @@
-/* You can add global styles to this file, and also import other style files */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    color-scheme: dark;
+    --ath-bg: #0a1228;
+    --ath-surface: #111c36;
+    --ath-surface-2: #1a2747;
+    --ath-primary: #2f6bff;
+    --ath-accent: #a3e635;
+    --ath-text: #f3f6ff;
+    --ath-muted: #8fa1c7;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    min-height: 100%;
+    background: var(--ath-bg);
+    color: var(--ath-text);
+    font-family: Inter, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+    line-height: 1.4;
+}
