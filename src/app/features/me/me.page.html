@@ -1,0 +1,91 @@
+<main class="relative mx-auto min-h-screen w-full max-w-5xl px-4 py-8 lg:px-8">
+  <div
+    class="pointer-events-none absolute inset-x-10 top-12 h-44 rounded-full bg-athlium-primary/20 blur-3xl"
+  ></div>
+
+  <section
+    class="relative rounded-panel border border-athlium-primary/10 bg-athlium-surface p-6 shadow-soft backdrop-blur"
+  >
+    <div
+      class="flex flex-wrap items-center justify-between gap-4 border-b border-athlium-primary/10 pb-5"
+    >
+      <div class="flex items-center gap-3">
+        <div
+          class="grid h-12 w-12 place-content-center rounded-xl bg-athlium-surface-2 text-lg font-semibold text-athlium-text"
+        >
+          {{ (authSession.user()?.name || 'U').charAt(0).toUpperCase() }}
+        </div>
+        <div>
+          <h1 class="font-title text-3xl font-semibold">Mi Perfil</h1>
+          <p class="text-sm text-athlium-muted">Vista web del perfil administrativo</p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 px-3 py-2 text-sm text-athlium-text transition hover:bg-athlium-surface-2/55"
+        (click)="goHome()"
+      >
+        Volver al panel
+      </button>
+    </div>
+
+    @if (authSession.user(); as user) {
+      <div class="mt-6 grid gap-4 lg:grid-cols-3">
+        <dl class="grid gap-3 text-sm lg:col-span-2">
+          <div
+            class="rounded-xl border border-athlium-primary/10 bg-athlium-surface-2/45 px-4 py-3"
+          >
+            <dt class="text-athlium-muted">Nombre</dt>
+            <dd class="mt-1 text-base font-semibold">{{ user.name }}</dd>
+          </div>
+          <div
+            class="rounded-xl border border-athlium-primary/10 bg-athlium-surface-2/45 px-4 py-3"
+          >
+            <dt class="text-athlium-muted">Email</dt>
+            <dd class="mt-1 text-base font-semibold">{{ user.email }}</dd>
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div
+              class="rounded-xl border border-athlium-primary/10 bg-athlium-surface-2/45 px-4 py-3"
+            >
+              <dt class="text-athlium-muted">Proveedor</dt>
+              <dd class="mt-1 text-base font-semibold">{{ user.provider }}</dd>
+            </div>
+            <div
+              class="rounded-xl border border-athlium-primary/10 bg-athlium-surface-2/45 px-4 py-3"
+            >
+              <dt class="text-athlium-muted">Estado</dt>
+              <dd class="mt-1 text-base font-semibold">
+                {{ user.active ? 'Activo' : 'Inactivo' }}
+              </dd>
+            </div>
+          </div>
+        </dl>
+
+        <aside class="rounded-xl border border-athlium-primary/10 bg-athlium-surface-2/35 p-4">
+          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-athlium-muted">
+            Roles activos
+          </p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            @for (role of user.roles; track role) {
+              <span
+                class="rounded-full border border-athlium-primary/25 bg-athlium-primary/12 px-2 py-1 text-xs font-semibold text-athlium-text"
+              >
+                {{ role }}
+              </span>
+            }
+          </div>
+
+          <button
+            type="button"
+            class="mt-5 w-full rounded-xl border border-red-400/35 bg-red-500/10 px-4 py-2 font-semibold text-red-200 transition hover:bg-red-500/20"
+            (click)="logout()"
+          >
+            Cerrar sesion
+          </button>
+        </aside>
+      </div>
+    }
+  </section>
+</main>
