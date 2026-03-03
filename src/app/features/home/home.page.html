@@ -1,4 +1,4 @@
-<main class="relative flex min-h-screen w-full overflow-hidden bg-athlium-bg text-athlium-text">
+<main class="relative flex h-screen w-full overflow-hidden bg-athlium-bg text-athlium-text">
   <div
     class="pointer-events-none absolute -left-24 top-0 h-80 w-80 rounded-full bg-athlium-primary/20 blur-3xl"
   ></div>
@@ -19,17 +19,15 @@
     </div>
 
     <nav class="mt-8 grid gap-2 text-sm">
-      @for (item of roleNavItems(); track item) {
-        <button
-          type="button"
+      @for (item of roleNavItems(); track item.path + item.label) {
+        <a
           class="rounded-xl px-3 py-2 text-left text-athlium-muted transition hover:bg-athlium-surface-2/35"
-          [class.bg-athlium-primary]="item === roleNavItems()[0]"
-          [class.text-athlium-text]="item === roleNavItems()[0]"
-          [class.shadow-[0_10px_22px_rgba(53,109,255,0.35)]]="item === roleNavItems()[0]"
-          (click)="goToHome()"
+          [routerLink]="item.path"
+          routerLinkActive="bg-athlium-primary text-athlium-text shadow-[0_10px_22px_rgba(53,109,255,0.35)]"
+          [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' }"
         >
-          {{ item }}
-        </button>
+          {{ item.label }}
+        </a>
       }
     </nav>
 
@@ -45,14 +43,16 @@
     </button>
   </aside>
 
-  <section class="flex min-w-0 flex-1 flex-col pb-24 lg:pb-6">
+  <section class="flex min-w-0 flex-1 flex-col pb-24 lg:pb-0">
     <header
       class="sticky top-0 z-10 border-b border-athlium-primary/10 bg-athlium-bg/95 px-4 py-5 backdrop-blur lg:px-8"
     >
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 class="font-title text-2xl font-semibold">{{ roleTitle() }}</h1>
-          <p class="text-sm text-athlium-muted">{{ roleSubtitle() }}</p>
+          <h1 class="font-title text-2xl font-semibold">ATHLIUM Dashboard</h1>
+          <p class="text-sm text-athlium-muted">
+            Estructura base por roles con navegacion lazy dentro del scaffold
+          </p>
         </div>
 
         <div class="flex items-center gap-2">
@@ -70,43 +70,10 @@
           </button>
         </div>
       </div>
-
-      <input
-        class="mt-4 w-full appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
-        placeholder="Search activities by name..."
-        type="search"
-      />
     </header>
 
-    <div class="grid gap-4 px-4 py-6 lg:grid-cols-2 lg:px-8">
-      @for (card of activityCards; track card.name) {
-        <article
-          class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-4 shadow-soft"
-        >
-          <span
-            class="inline-flex rounded-full border border-athlium-primary/12 px-2 py-1 text-xs text-athlium-muted"
-          >
-            {{ card.label }}
-          </span>
-          <h3 class="mt-3 text-xl font-semibold">{{ card.name }}</h3>
-          <p class="text-sm text-athlium-muted">
-            Max Capacity: {{ card.capacity }} • {{ card.durationMinutes }} min
-          </p>
-
-          <div class="mt-4 flex items-center justify-between text-sm">
-            <span class="text-athlium-muted">Status</span>
-            <span
-              class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold"
-              [class.bg-athlium-accent]="card.active"
-              [class.text-athlium-bg]="card.active"
-              [class.bg-athlium-surface-2/70]="!card.active"
-              [class.text-athlium-muted]="!card.active"
-            >
-              {{ card.active ? 'Active' : 'Inactive' }}
-            </span>
-          </div>
-        </article>
-      }
+    <div class="min-h-0 flex-1 overflow-y-auto">
+      <router-outlet></router-outlet>
     </div>
   </section>
 

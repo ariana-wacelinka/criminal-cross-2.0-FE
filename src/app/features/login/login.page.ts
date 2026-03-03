@@ -66,12 +66,13 @@ export class LoginPage {
     this.errorMessage.set(null);
 
     try {
+      const role = this.form.controls.role.value;
       await this.authFacade.loginWithEmailPassword(
         this.form.controls.email.value,
         this.form.controls.password.value,
-        this.form.controls.role.value,
+        role,
       );
-      await this.router.navigateByUrl('/');
+      await this.router.navigateByUrl('/dashboard');
     } catch (error) {
       this.errorMessage.set(this.resolveErrorMessage(error));
     } finally {
