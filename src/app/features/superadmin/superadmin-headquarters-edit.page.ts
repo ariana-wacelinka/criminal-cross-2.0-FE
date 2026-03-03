@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { HeadquartersApi } from '../../core/api/headquarters.api';
 import { OrganizationsApi } from '../../core/api/organizations.api';
+import { UiToastService } from '../../core/ui/toast.service';
 
 @Component({
   selector: 'app-superadmin-headquarters-edit-page',
@@ -18,6 +19,7 @@ export class SuperadminHeadquartersEditPage {
   private readonly router = inject(Router);
   private readonly headquartersApi = inject(HeadquartersApi);
   private readonly organizationsApi = inject(OrganizationsApi);
+  private readonly toast = inject(UiToastService);
 
   private readonly headquartersId = Number(this.route.snapshot.paramMap.get('headquartersId'));
 
@@ -52,14 +54,18 @@ export class SuperadminHeadquartersEditPage {
       return;
     }
 
-    await firstValueFrom(
-      this.headquartersApi.update(this.headquartersId, {
-        organizationId: this.form.controls.organizationId.value,
-        name: this.form.controls.name.value,
-      }),
-    );
-
-    await this.router.navigateByUrl('/headquarters');
+    try {
+      await firstValueFrom(
+        this.headquartersApi.update(this.headquartersId, {
+          organizationId: this.form.controls.organizationId.value,
+          name: this.form.controls.name.value,
+        }),
+      );
+      this.toast.success('Sede actualizada.');
+      await this.router.navigateByUrl('/headquarters');
+    } catch {
+      this.toast.error('No se pudo actualizar la sede.');
+    }
   }
 
   protected async cancel(): Promise<void> {

@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthSessionService } from '../../core/auth';
 import { OrganizationsApi } from '../../core/api/organizations.api';
+import { UiToastService } from '../../core/ui/toast.service';
 
 @Component({
   selector: 'app-superadmin-organization-delete-page',
@@ -16,6 +17,7 @@ export class SuperadminOrganizationDeletePage {
   private readonly route = inject(ActivatedRoute);
   private readonly authSession = inject(AuthSessionService);
   private readonly organizationsApi = inject(OrganizationsApi);
+  private readonly toast = inject(UiToastService);
 
   private readonly organizationId = Number(this.route.snapshot.paramMap.get('organizationId'));
 
@@ -69,9 +71,15 @@ export class SuperadminOrganizationDeletePage {
       return;
     }
 
-    await firstValueFrom(this.organizationsApi.remove(this.organizationId));
-    this.closeConfirmModal();
-    await this.router.navigateByUrl('/organizations');
+    try {
+      await firstValueFrom(this.organizationsApi.remove(this.organizationId));
+      this.closeConfirmModal();
+      this.toast.success('Organizacion eliminada.');
+      await this.router.navigateByUrl('/organizations');
+    } catch {
+      this.deleteError.set('No se pudo eliminar la organizacion. Intenta nuevamente.');
+      this.toast.error('No se pudo eliminar la organizacion.');
+    }
   }
 
   protected async cancel(): Promise<void> {

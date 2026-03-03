@@ -7,6 +7,7 @@ import { AuthSessionService } from '../../core/auth';
 import { HeadquartersApi } from '../../core/api/headquarters.api';
 import { OrganizationsApi } from '../../core/api/organizations.api';
 import { Headquarters } from '../../core/domain/models';
+import { UiToastService } from '../../core/ui/toast.service';
 
 @Component({
   selector: 'app-superadmin-organization-detail-page',
@@ -21,6 +22,7 @@ export class SuperadminOrganizationDetailPage {
   private readonly authSession = inject(AuthSessionService);
   private readonly organizationsApi = inject(OrganizationsApi);
   private readonly headquartersApi = inject(HeadquartersApi);
+  private readonly toast = inject(UiToastService);
 
   private readonly organizationId = Number(this.route.snapshot.paramMap.get('organizationId'));
 
@@ -105,9 +107,15 @@ export class SuperadminOrganizationDetailPage {
       return;
     }
 
-    await firstValueFrom(this.headquartersApi.remove(selected.id));
-    this.headquarters.update((items) => items.filter((item) => item.id !== selected.id));
-    this.closeDeleteModal();
+    try {
+      await firstValueFrom(this.headquartersApi.remove(selected.id));
+      this.headquarters.update((items) => items.filter((item) => item.id !== selected.id));
+      this.closeDeleteModal();
+      this.toast.success('Sede eliminada.');
+    } catch {
+      this.deleteError.set('No se pudo eliminar la sede. Intenta nuevamente.');
+      this.toast.error('No se pudo eliminar la sede.');
+    }
   }
 
   protected onEmailInput(value: string): void {

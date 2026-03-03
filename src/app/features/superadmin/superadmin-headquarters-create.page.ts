@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { HeadquartersApi } from '../../core/api/headquarters.api';
 import { OrganizationsApi } from '../../core/api/organizations.api';
+import { UiToastService } from '../../core/ui/toast.service';
 
 @Component({
   selector: 'app-superadmin-headquarters-create-page',
@@ -17,6 +18,7 @@ export class SuperadminHeadquartersCreatePage {
   private readonly router = inject(Router);
   private readonly headquartersApi = inject(HeadquartersApi);
   private readonly organizationsApi = inject(OrganizationsApi);
+  private readonly toast = inject(UiToastService);
 
   protected readonly organizations = toSignal(this.organizationsApi.getAll(), { initialValue: [] });
 
@@ -31,13 +33,18 @@ export class SuperadminHeadquartersCreatePage {
       return;
     }
 
-    await firstValueFrom(
-      this.headquartersApi.create({
-        organizationId: this.form.controls.organizationId.value,
-        name: this.form.controls.name.value,
-      }),
-    );
-    await this.router.navigateByUrl('/headquarters');
+    try {
+      await firstValueFrom(
+        this.headquartersApi.create({
+          organizationId: this.form.controls.organizationId.value,
+          name: this.form.controls.name.value,
+        }),
+      );
+      this.toast.success('Sede creada correctamente.');
+      await this.router.navigateByUrl('/headquarters');
+    } catch {
+      this.toast.error('No se pudo crear la sede.');
+    }
   }
 
   protected async cancel(): Promise<void> {

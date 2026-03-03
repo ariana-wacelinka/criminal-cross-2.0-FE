@@ -82,6 +82,17 @@
           </button>
         </aside>
       </div>
+    } @else {
+      <div class="mt-6 grid gap-4 lg:grid-cols-3">
+        <div class="grid gap-3 lg:col-span-2">
+          @for (item of [1, 2, 3]; track item) {
+            <div
+              class="h-20 rounded-xl border border-athlium-primary/10 bg-athlium-surface-2/45"
+            ></div>
+          }
+        </div>
+        <div class="h-48 rounded-xl border border-athlium-primary/10 bg-athlium-surface-2/35"></div>
+      </div>
     }
   </section>
 </main>

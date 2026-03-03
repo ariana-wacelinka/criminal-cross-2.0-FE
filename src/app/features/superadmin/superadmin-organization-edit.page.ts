@@ -4,6 +4,7 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { OrganizationsApi } from '../../core/api/organizations.api';
+import { UiToastService } from '../../core/ui/toast.service';
 
 @Component({
   selector: 'app-superadmin-organization-edit-page',
@@ -16,6 +17,7 @@ export class SuperadminOrganizationEditPage {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly organizationsApi = inject(OrganizationsApi);
+  private readonly toast = inject(UiToastService);
 
   private readonly organizationId = Number(this.route.snapshot.paramMap.get('organizationId'));
 
@@ -42,13 +44,17 @@ export class SuperadminOrganizationEditPage {
       return;
     }
 
-    await firstValueFrom(
-      this.organizationsApi.update(this.organizationId, {
-        name: this.form.controls.name.value,
-      }),
-    );
-
-    await this.router.navigateByUrl('/organizations');
+    try {
+      await firstValueFrom(
+        this.organizationsApi.update(this.organizationId, {
+          name: this.form.controls.name.value,
+        }),
+      );
+      this.toast.success('Organizacion actualizada.');
+      await this.router.navigateByUrl('/organizations');
+    } catch {
+      this.toast.error('No se pudo actualizar la organizacion.');
+    }
   }
 
   protected async cancel(): Promise<void> {

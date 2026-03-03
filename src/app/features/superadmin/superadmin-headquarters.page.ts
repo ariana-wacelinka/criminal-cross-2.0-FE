@@ -7,6 +7,7 @@ import { AuthSessionService } from '../../core/auth';
 import { HeadquartersApi } from '../../core/api/headquarters.api';
 import { OrganizationsApi } from '../../core/api/organizations.api';
 import { Headquarters } from '../../core/domain/models';
+import { UiToastService } from '../../core/ui/toast.service';
 
 @Component({
   selector: 'app-superadmin-headquarters-page',
@@ -19,6 +20,7 @@ export class SuperadminHeadquartersPage {
   private readonly authSession = inject(AuthSessionService);
   private readonly headquartersApi = inject(HeadquartersApi);
   private readonly organizationsApi = inject(OrganizationsApi);
+  private readonly toast = inject(UiToastService);
 
   protected readonly currentPage = signal(0);
   protected readonly pageSize = 8;
@@ -159,15 +161,21 @@ export class SuperadminHeadquartersPage {
       return;
     }
 
-    await firstValueFrom(this.headquartersApi.remove(selected.id));
+    try {
+      await firstValueFrom(this.headquartersApi.remove(selected.id));
 
-    const pageAfterDelete = this.headquartersPage();
-    const isLastItemOnPage = pageAfterDelete.items.length === 1;
-    if (isLastItemOnPage && this.currentPage() > 0) {
-      this.currentPage.update((page) => page - 1);
+      const pageAfterDelete = this.headquartersPage();
+      const isLastItemOnPage = pageAfterDelete.items.length === 1;
+      if (isLastItemOnPage && this.currentPage() > 0) {
+        this.currentPage.update((page) => page - 1);
+      }
+
+      this.refreshTick.update((value) => value + 1);
+      this.closeDeleteModal();
+      this.toast.success('Sede eliminada.');
+    } catch {
+      this.deleteError.set('No se pudo eliminar la sede. Intenta nuevamente.');
+      this.toast.error('No se pudo eliminar la sede.');
     }
-
-    this.refreshTick.update((value) => value + 1);
-    this.closeDeleteModal();
   }
 }

@@ -12,6 +12,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { UpdateRolesRequest, UpdateUserRequest, UsersApi } from '../../core/api/users.api';
 import { Role } from '../../core/domain/models';
+import { UiToastService } from '../../core/ui/toast.service';
 
 @Component({
   selector: 'app-superadmin-user-edit-page',
@@ -24,6 +25,7 @@ export class SuperadminUserEditPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly usersApi = inject(UsersApi);
+  private readonly toast = inject(UiToastService);
 
   private readonly userId = Number(this.route.snapshot.paramMap.get('userId'));
 
@@ -115,9 +117,15 @@ export class SuperadminUserEditPage {
       roles: this.selectedRoles(),
     };
 
-    await firstValueFrom(this.usersApi.update(this.userId, userPayload));
-    await firstValueFrom(this.usersApi.updateRoles(this.userId, rolesPayload));
-    await this.router.navigateByUrl('/users');
+    try {
+      await firstValueFrom(this.usersApi.update(this.userId, userPayload));
+      await firstValueFrom(this.usersApi.updateRoles(this.userId, rolesPayload));
+      this.toast.success('Usuario actualizado.');
+      await this.router.navigateByUrl('/users');
+    } catch {
+      this.errorMessage.set('No se pudieron guardar los cambios.');
+      this.toast.error('No se pudo actualizar el usuario.');
+    }
   }
 
   protected async cancel(): Promise<void> {
