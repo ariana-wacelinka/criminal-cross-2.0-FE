@@ -1,0 +1,59 @@
+<section class="px-4 py-6 text-athlium-text lg:px-8">
+  <header
+    class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">
+          Superadmin
+        </p>
+        <h1 class="mt-2 font-title text-3xl font-semibold">{{ headquarters().name }}</h1>
+        <p class="mt-1 text-sm text-athlium-muted">Detalle de sede</p>
+      </div>
+      <button
+        type="button"
+        class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 px-3 py-2 text-sm transition hover:bg-athlium-surface-2/55"
+        (click)="goBack()"
+      >
+        Volver
+      </button>
+    </div>
+  </header>
+
+  <div class="mt-5 grid gap-4 lg:grid-cols-2">
+    <article
+      class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+    >
+      <p class="text-xs font-semibold uppercase tracking-[0.14em] text-athlium-muted">Datos base</p>
+      <dl class="mt-3 grid gap-3 text-sm">
+        <div class="rounded-xl bg-athlium-surface-2/45 px-3 py-3">
+          <dt class="text-athlium-muted">Nombre</dt>
+          <dd class="mt-1 font-semibold">{{ headquarters().name }}</dd>
+        </div>
+        <div class="rounded-xl bg-athlium-surface-2/45 px-3 py-3">
+          <dt class="text-athlium-muted">Organizacion</dt>
+          <dd class="mt-1 font-semibold">{{ organizationName() }}</dd>
+        </div>
+      </dl>
+    </article>
+
+    <article
+      class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+    >
+      <p class="text-xs font-semibold uppercase tracking-[0.14em] text-athlium-muted">
+        Actividades
+      </p>
+      <div class="mt-3 rounded-xl bg-athlium-surface-2/45 px-3 py-3 text-sm text-athlium-muted">
+        @if (headquarters().activities?.length) {
+          <ul class="space-y-2">
+            @for (activity of headquarters().activities!; track activity.id) {
+              <li class="font-medium text-athlium-text">{{ activity.name }}</li>
+            }
+          </ul>
+        } @else {
+          Sin actividades asociadas en la respuesta actual.
+        }
+      </div>
+    </article>
+  </div>
+</section>
