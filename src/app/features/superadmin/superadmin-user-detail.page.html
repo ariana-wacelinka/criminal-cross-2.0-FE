@@ -1,0 +1,58 @@
+<section class="px-4 py-6 text-athlium-text lg:px-8">
+  <header
+    class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">
+          Superadmin
+        </p>
+        <h1 class="mt-2 font-title text-3xl font-semibold">{{ fullName() }}</h1>
+        <p class="mt-1 text-sm text-athlium-muted">Detalle de usuario</p>
+      </div>
+      <button
+        type="button"
+        class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 px-3 py-2 text-sm transition hover:bg-athlium-surface-2/55"
+        (click)="goBack()"
+      >
+        Volver
+      </button>
+    </div>
+  </header>
+
+  <article
+    class="mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <dl class="grid gap-3 text-sm sm:grid-cols-2">
+      <div class="rounded-xl bg-athlium-surface-2/45 px-3 py-3">
+        <dt class="text-athlium-muted">Nombre</dt>
+        <dd class="mt-1 font-semibold">{{ user().name }}</dd>
+      </div>
+      <div class="rounded-xl bg-athlium-surface-2/45 px-3 py-3">
+        <dt class="text-athlium-muted">Apellido</dt>
+        <dd class="mt-1 font-semibold">{{ user().lastName }}</dd>
+      </div>
+      <div class="rounded-xl bg-athlium-surface-2/45 px-3 py-3">
+        <dt class="text-athlium-muted">Email</dt>
+        <dd class="mt-1 font-semibold">{{ user().email }}</dd>
+      </div>
+      <div class="rounded-xl bg-athlium-surface-2/45 px-3 py-3">
+        <dt class="text-athlium-muted">Firebase UID</dt>
+        <dd class="mt-1 break-all font-semibold">{{ user().firebaseUid }}</dd>
+      </div>
+    </dl>
+
+    <div class="mt-4 rounded-xl bg-athlium-surface-2/45 px-3 py-3">
+      <p class="text-xs font-semibold uppercase tracking-[0.14em] text-athlium-muted">Roles</p>
+      <div class="mt-2 flex flex-wrap gap-2">
+        @for (role of user().roles; track role) {
+          <span
+            class="rounded-full border border-athlium-primary/20 bg-athlium-primary/10 px-2 py-1 text-xs font-semibold"
+          >
+            {{ role }}
+          </span>
+        }
+      </div>
+    </div>
+  </article>
+</section>
