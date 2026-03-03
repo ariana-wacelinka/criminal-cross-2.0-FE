@@ -40,6 +40,10 @@ export class SuperadminHeadquartersPage {
     })),
   );
 
+  protected async createHeadquarters(): Promise<void> {
+    await this.router.navigateByUrl('/headquarters/create');
+  }
+
   protected toggleHeadquartersMenu(headquartersId: number): void {
     this.openHeadquartersMenuId.update((current) =>
       current === headquartersId ? null : headquartersId,
