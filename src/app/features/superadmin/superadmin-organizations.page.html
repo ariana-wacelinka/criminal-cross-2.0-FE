@@ -1,0 +1,24 @@
+<section class="px-4 py-6 text-athlium-text lg:px-8">
+  <header
+    class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Superadmin</p>
+    <h1 class="mt-2 font-title text-3xl font-semibold">Organizaciones</h1>
+    <p class="mt-1 text-sm text-athlium-muted">Administracion global de organizaciones.</p>
+  </header>
+
+  <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+    @for (org of organizationsView(); track org.id) {
+      <article
+        class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+      >
+        <h2 class="font-title text-xl font-semibold">{{ org.name }}</h2>
+        <p class="mt-2 text-sm text-athlium-muted">ID {{ org.id }}</p>
+        <div class="mt-4 rounded-xl bg-athlium-surface-2/45 p-3 text-sm">
+          <p class="text-athlium-muted">Sedes</p>
+          <p class="mt-1 text-lg font-semibold">{{ org.headquarters }}</p>
+        </div>
+      </article>
+    }
+  </div>
+</section>
