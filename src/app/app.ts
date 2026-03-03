@@ -8,7 +8,9 @@ import { UiToastService } from './core/ui/toast.service';
   template: `
     <router-outlet></router-outlet>
 
-    <div class="pointer-events-none fixed right-3 top-3 z-[90] grid w-[min(92vw,360px)] gap-2">
+    <div
+      class="pointer-events-none fixed bottom-20 right-3 z-[90] grid w-[min(92vw,360px)] gap-2 lg:bottom-3"
+    >
       @for (toast of toasts(); track toast.id) {
         <article
           class="pointer-events-auto ath-reveal rounded-xl border px-3 py-2 text-sm shadow-soft"
