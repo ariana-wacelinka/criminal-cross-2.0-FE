@@ -1,0 +1,54 @@
+<section class="px-4 py-6 text-athlium-text lg:px-8">
+  <header
+    class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Superadmin</p>
+    <h1 class="mt-2 font-title text-3xl font-semibold">Usuarios</h1>
+    <p class="mt-1 text-sm text-athlium-muted">Gestion de roles y estado de usuarios.</p>
+  </header>
+
+  <div
+    class="mt-5 overflow-x-auto rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <table class="w-full min-w-[760px] text-left text-sm">
+      <thead class="text-athlium-muted">
+        <tr class="border-b border-athlium-primary/10">
+          <th class="py-2 font-medium">Nombre</th>
+          <th class="py-2 font-medium">Email</th>
+          <th class="py-2 font-medium">Rol</th>
+          <th class="py-2 font-medium">Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (user of users(); track user.id) {
+          <tr class="border-b border-athlium-primary/10 last:border-b-0">
+            <td class="py-3 font-medium">{{ user.name }} {{ user.lastName }}</td>
+            <td class="py-3 text-athlium-muted">{{ user.email }}</td>
+            <td class="py-3">
+              <div class="flex flex-wrap gap-2">
+                @for (role of user.roles; track role) {
+                  <span
+                    class="rounded-full border border-athlium-primary/20 bg-athlium-primary/10 px-2 py-1 text-xs font-semibold"
+                  >
+                    {{ role }}
+                  </span>
+                }
+              </div>
+            </td>
+            <td class="py-3">
+              <span
+                class="rounded-full px-2 py-1 text-xs font-semibold"
+                [class.bg-athlium-accent]="user.active"
+                [class.text-athlium-bg]="user.active"
+                [class.bg-athlium-surface-2]="!user.active"
+                [class.text-athlium-muted]="!user.active"
+              >
+                {{ user.active ? 'Activo' : 'Inactivo' }}
+              </span>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
