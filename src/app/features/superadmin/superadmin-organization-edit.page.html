@@ -1,0 +1,40 @@
+<section class="px-4 py-6 text-athlium-text lg:px-8">
+  <header
+    class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Superadmin</p>
+    <h1 class="mt-2 font-title text-3xl font-semibold">Editar organizacion</h1>
+    <p class="mt-1 text-sm text-athlium-muted">Actualiza nombre y datos basicos.</p>
+  </header>
+
+  <form
+    class="mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+    [formGroup]="form"
+    (ngSubmit)="save()"
+  >
+    <label class="text-sm text-athlium-muted" for="org-name">Nombre de la organizacion</label>
+    <input
+      id="org-name"
+      class="mt-2 w-full appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+      formControlName="name"
+      placeholder="Nombre"
+      type="text"
+    />
+
+    <div class="mt-5 flex items-center gap-2">
+      <button
+        type="submit"
+        class="rounded-xl bg-athlium-primary px-4 py-2 font-semibold text-athlium-text transition hover:brightness-110"
+      >
+        Guardar cambios
+      </button>
+      <button
+        type="button"
+        class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 px-4 py-2 font-semibold text-athlium-text transition hover:bg-athlium-surface-2/55"
+        (click)="cancel()"
+      >
+        Cancelar
+      </button>
+    </div>
+  </form>
+</section>
