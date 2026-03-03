@@ -34,6 +34,10 @@ export class SuperadminOrganizationsPage {
     );
   }
 
+  protected async createOrganization(): Promise<void> {
+    await this.router.navigateByUrl('/organizations/create');
+  }
+
   protected async viewOrganization(organizationId: number): Promise<void> {
     this.openMenuOrganizationId.set(null);
     await this.router.navigateByUrl(`/organizations/${organizationId}`);

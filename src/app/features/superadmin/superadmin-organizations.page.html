@@ -2,9 +2,24 @@
   <header
     class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
   >
-    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Superadmin</p>
-    <h1 class="mt-2 font-title text-3xl font-semibold">Organizaciones</h1>
-    <p class="mt-1 text-sm text-athlium-muted">Administracion global de organizaciones.</p>
+    <div class="flex flex-col gap-4">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">
+          Superadmin
+        </p>
+        <h1 class="mt-2 font-title text-3xl font-semibold">Organizaciones</h1>
+        <p class="mt-1 text-sm text-athlium-muted">Administracion global de organizaciones.</p>
+      </div>
+      <div class="flex justify-end">
+        <button
+          type="button"
+          class="rounded-xl bg-athlium-primary px-4 py-2 text-sm font-semibold text-athlium-text transition hover:brightness-110"
+          (click)="createOrganization()"
+        >
+          Crear organizacion
+        </button>
+      </div>
+    </div>
   </header>
 
   <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
