@@ -1,5 +1,6 @@
-import { computed, ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { computed, ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { Router } from '@angular/router';
 import { HeadquartersApi } from '../../core/api/headquarters.api';
 import { OrganizationsApi } from '../../core/api/organizations.api';
 
@@ -10,8 +11,10 @@ import { OrganizationsApi } from '../../core/api/organizations.api';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SuperadminOrganizationsPage {
+  private readonly router = inject(Router);
   private readonly organizationsApi = inject(OrganizationsApi);
   private readonly headquartersApi = inject(HeadquartersApi);
+  protected readonly openMenuOrganizationId = signal<number | null>(null);
 
   protected readonly organizations = toSignal(this.organizationsApi.getAll(), { initialValue: [] });
   protected readonly headquarters = toSignal(this.headquartersApi.getAll(), { initialValue: [] });
@@ -24,4 +27,25 @@ export class SuperadminOrganizationsPage {
         .length,
     })),
   );
+
+  protected toggleMenu(organizationId: number): void {
+    this.openMenuOrganizationId.update((current) =>
+      current === organizationId ? null : organizationId,
+    );
+  }
+
+  protected async viewOrganization(organizationId: number): Promise<void> {
+    this.openMenuOrganizationId.set(null);
+    await this.router.navigateByUrl(`/organizations/${organizationId}`);
+  }
+
+  protected async editOrganization(organizationId: number): Promise<void> {
+    this.openMenuOrganizationId.set(null);
+    await this.router.navigateByUrl(`/organizations/${organizationId}/edit`);
+  }
+
+  protected async deleteOrganization(organizationId: number): Promise<void> {
+    this.openMenuOrganizationId.set(null);
+    await this.router.navigateByUrl(`/organizations/${organizationId}/delete`);
+  }
 }

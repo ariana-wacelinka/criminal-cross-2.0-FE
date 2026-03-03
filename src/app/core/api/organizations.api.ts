@@ -30,6 +30,15 @@ export class OrganizationsApi {
     return this.http.get<Organization[]>(`${this.baseUrl}/organizations`);
   }
 
+  getById(id: number): Observable<Organization> {
+    if (API_MOCK_MODE) {
+      const organization = MOCK_ORGANIZATIONS.find((item) => item.id === id);
+      return of(organization ?? { id, name: 'Organizacion no encontrada' });
+    }
+
+    return this.http.get<Organization>(`${this.baseUrl}/organizations/${id}`);
+  }
+
   create(body: UpsertOrganizationRequest): Observable<Organization> {
     if (API_MOCK_MODE) {
       return of({ id: Date.now(), name: body.name });
