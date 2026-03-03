@@ -2,49 +2,127 @@
   <header
     class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
   >
-    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Superadmin</p>
-    <h1 class="mt-2 font-title text-3xl font-semibold">Usuarios</h1>
-    <p class="mt-1 text-sm text-athlium-muted">Gestion de roles y estado de usuarios.</p>
+    <div class="flex flex-col gap-4">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">
+          Superadmin
+        </p>
+        <h1 class="mt-2 font-title text-3xl font-semibold">Usuarios</h1>
+        <p class="mt-1 text-sm text-athlium-muted">Gestion de usuarios.</p>
+      </div>
+      <div class="flex justify-end">
+        <button
+          type="button"
+          class="rounded-xl bg-athlium-primary px-4 py-2 text-sm font-semibold text-athlium-text transition hover:brightness-110"
+          (click)="createUser()"
+        >
+          Crear usuario
+        </button>
+      </div>
+    </div>
   </header>
 
   <div
-    class="mt-5 overflow-x-auto rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+    class="mt-5 overflow-visible rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
   >
-    <table class="w-full min-w-[760px] text-left text-sm">
+    <ul class="grid gap-3 md:hidden">
+      @for (user of users(); track user.id) {
+        <li
+          class="relative rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 p-3"
+        >
+          <button
+            type="button"
+            class="absolute right-3 top-3 grid h-8 w-8 place-content-center rounded-lg border border-athlium-primary/12 text-athlium-muted transition hover:bg-athlium-surface-2/45"
+            (click)="toggleUserMenu(user.id)"
+          >
+            <span class="material-symbols-outlined text-base leading-none">more_vert</span>
+          </button>
+
+          <p class="pr-10 font-medium">{{ user.name }} {{ user.lastName }}</p>
+          <p class="mt-1 break-all pr-10 text-sm text-athlium-muted">{{ user.email }}</p>
+
+          @if (openUserMenuId() === user.id) {
+            <div
+              class="absolute right-3 top-12 z-10 grid min-w-[140px] gap-1 rounded-xl border border-athlium-primary/10 bg-athlium-surface p-2 shadow-soft"
+            >
+              <button
+                type="button"
+                class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
+                (click)="viewUser(user.id)"
+              >
+                Ver
+              </button>
+              <button
+                type="button"
+                class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
+                (click)="editUserRoles(user.id)"
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                class="rounded-lg px-2 py-2 text-left text-sm text-red-300 transition hover:bg-red-500/10"
+                (click)="deleteUser(user.id)"
+              >
+                Eliminar
+              </button>
+            </div>
+          }
+        </li>
+      }
+    </ul>
+
+    <table class="hidden w-full text-left text-sm md:table">
       <thead class="text-athlium-muted">
         <tr class="border-b border-athlium-primary/10">
           <th class="py-2 font-medium">Nombre</th>
           <th class="py-2 font-medium">Email</th>
-          <th class="py-2 font-medium">Rol</th>
-          <th class="py-2 font-medium">Estado</th>
+          <th class="py-2 pr-0 text-right font-medium"></th>
         </tr>
       </thead>
       <tbody>
         @for (user of users(); track user.id) {
-          <tr class="border-b border-athlium-primary/10 last:border-b-0">
+          <tr class="relative border-b border-athlium-primary/10 last:border-b-0">
             <td class="py-3 font-medium">{{ user.name }} {{ user.lastName }}</td>
             <td class="py-3 text-athlium-muted">{{ user.email }}</td>
-            <td class="py-3">
-              <div class="flex flex-wrap gap-2">
-                @for (role of user.roles; track role) {
-                  <span
-                    class="rounded-full border border-athlium-primary/20 bg-athlium-primary/10 px-2 py-1 text-xs font-semibold"
+            <td class="py-3 pr-0">
+              <div class="relative flex justify-end">
+                <button
+                  type="button"
+                  class="grid h-8 w-8 place-content-center rounded-lg border border-athlium-primary/12 text-athlium-muted transition hover:bg-athlium-surface-2/45"
+                  (click)="toggleUserMenu(user.id)"
+                >
+                  <span class="material-symbols-outlined text-base leading-none">more_vert</span>
+                </button>
+
+                @if (openUserMenuId() === user.id) {
+                  <div
+                    class="absolute right-0 top-10 z-10 grid min-w-[140px] gap-1 rounded-xl border border-athlium-primary/10 bg-athlium-surface p-2 shadow-soft"
                   >
-                    {{ role }}
-                  </span>
+                    <button
+                      type="button"
+                      class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
+                      (click)="viewUser(user.id)"
+                    >
+                      Ver
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
+                      (click)="editUserRoles(user.id)"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded-lg px-2 py-2 text-left text-sm text-red-300 transition hover:bg-red-500/10"
+                      (click)="deleteUser(user.id)"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
                 }
               </div>
-            </td>
-            <td class="py-3">
-              <span
-                class="rounded-full px-2 py-1 text-xs font-semibold"
-                [class.bg-athlium-accent]="user.active"
-                [class.text-athlium-bg]="user.active"
-                [class.bg-athlium-surface-2]="!user.active"
-                [class.text-athlium-muted]="!user.active"
-              >
-                {{ user.active ? 'Activo' : 'Inactivo' }}
-              </span>
             </td>
           </tr>
         }
