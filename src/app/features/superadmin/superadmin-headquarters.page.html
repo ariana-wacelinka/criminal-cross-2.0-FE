@@ -37,7 +37,8 @@
         <tbody>
           @for (hq of headquartersView(); track hq.id; let i = $index) {
             <tr
-              class="ath-reveal relative border-b border-athlium-primary/10 last:border-b-0"
+              class="ath-reveal relative z-0 border-b border-athlium-primary/10 last:border-b-0"
+              [class.z-30]="openHeadquartersMenuId() === hq.id"
               [style.animation-delay.ms]="i * 35"
             >
               <td class="py-3 font-medium">{{ hq.name }}</td>
@@ -54,7 +55,8 @@
 
                   @if (openHeadquartersMenuId() === hq.id) {
                     <div
-                      class="absolute right-0 top-10 z-10 grid min-w-[140px] gap-1 rounded-xl border border-athlium-primary/10 bg-athlium-surface p-2 shadow-soft"
+                      class="absolute right-0 top-10 z-40 grid min-w-[150px] gap-1 rounded-xl border border-athlium-primary/20 bg-athlium-surface p-2 shadow-[0_16px_30px_rgba(3,9,31,0.62)]"
+                      style="background-color: rgb(var(--ath-surface-rgb) / 0.995)"
                     >
                       <button
                         type="button"

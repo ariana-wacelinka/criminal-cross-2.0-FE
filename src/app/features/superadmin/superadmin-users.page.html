@@ -29,7 +29,8 @@
       <ul class="grid gap-3 md:hidden">
         @for (user of users(); track user.id; let i = $index) {
           <li
-            class="ath-reveal relative rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 p-3"
+            class="ath-reveal relative z-0 isolate rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 p-3"
+            [class.z-30]="openUserMenuId() === user.id"
             [style.animation-delay.ms]="i * 45"
           >
             <button
@@ -45,7 +46,8 @@
 
             @if (openUserMenuId() === user.id) {
               <div
-                class="absolute right-3 top-12 z-10 grid min-w-[140px] gap-1 rounded-xl border border-athlium-primary/10 bg-athlium-surface p-2 shadow-soft"
+                class="absolute right-3 top-12 z-40 grid min-w-[150px] gap-1 rounded-xl border border-athlium-primary/20 bg-athlium-surface p-2 shadow-[0_16px_30px_rgba(3,9,31,0.62)]"
+                style="background-color: rgb(var(--ath-surface-rgb) / 0.995)"
               >
                 <button
                   type="button"
@@ -85,7 +87,8 @@
         <tbody>
           @for (user of users(); track user.id; let i = $index) {
             <tr
-              class="ath-reveal relative border-b border-athlium-primary/10 last:border-b-0"
+              class="ath-reveal relative z-0 border-b border-athlium-primary/10 last:border-b-0"
+              [class.z-30]="openUserMenuId() === user.id"
               [style.animation-delay.ms]="i * 30"
             >
               <td class="py-3 font-medium">{{ user.name }} {{ user.lastName }}</td>
@@ -102,7 +105,8 @@
 
                   @if (openUserMenuId() === user.id) {
                     <div
-                      class="absolute right-0 top-10 z-10 grid min-w-[140px] gap-1 rounded-xl border border-athlium-primary/10 bg-athlium-surface p-2 shadow-soft"
+                      class="absolute right-0 top-10 z-40 grid min-w-[150px] gap-1 rounded-xl border border-athlium-primary/20 bg-athlium-surface p-2 shadow-[0_16px_30px_rgba(3,9,31,0.62)]"
+                      style="background-color: rgb(var(--ath-surface-rgb) / 0.995)"
                     >
                       <button
                         type="button"
