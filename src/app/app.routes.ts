@@ -63,6 +63,31 @@ export const routes: Routes = [
           import('./features/superadmin').then((m) => m.SuperadminHeadquartersDetailPage),
       },
       {
+        path: 'headquarters/:headquartersId/activities',
+        loadComponent: () =>
+          import('./features/superadmin').then((m) => m.SuperadminHeadquartersActivitiesPage),
+      },
+      {
+        path: 'headquarters/:headquartersId/activities/create',
+        loadComponent: () =>
+          import('./features/superadmin').then((m) => m.SuperadminActivityCreatePage),
+      },
+      {
+        path: 'headquarters/:headquartersId/activities/:activityId',
+        loadComponent: () =>
+          import('./features/superadmin').then((m) => m.SuperadminActivityDetailPage),
+      },
+      {
+        path: 'headquarters/:headquartersId/activities/:activityId/edit',
+        loadComponent: () =>
+          import('./features/superadmin').then((m) => m.SuperadminActivityEditPage),
+      },
+      {
+        path: 'headquarters/:headquartersId/activities/:activityId/delete',
+        loadComponent: () =>
+          import('./features/superadmin').then((m) => m.SuperadminActivityDeletePage),
+      },
+      {
         path: 'headquarters/:headquartersId/edit',
         loadComponent: () =>
           import('./features/superadmin').then((m) => m.SuperadminHeadquartersEditPage),
