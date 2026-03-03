@@ -14,7 +14,6 @@ export * from './superadmin-headquarters-create.page';
 export * from './superadmin-headquarters-detail.page';
 export * from './superadmin-headquarters-edit.page';
 export * from './superadmin-users.page';
-export * from './superadmin-user-create.page';
 export * from './superadmin-user-detail.page';
 export * from './superadmin-user-edit.page';
 export * from './superadmin-user-delete.page';

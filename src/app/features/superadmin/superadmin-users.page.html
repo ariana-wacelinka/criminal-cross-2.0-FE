@@ -2,23 +2,10 @@
   <header
     class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
   >
-    <div class="flex flex-col gap-4">
-      <div>
-        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">
-          Superadmin
-        </p>
-        <h1 class="mt-2 font-title text-3xl font-semibold">Usuarios</h1>
-        <p class="mt-1 text-sm text-athlium-muted">Gestion de usuarios.</p>
-      </div>
-      <div class="flex justify-end">
-        <button
-          type="button"
-          class="rounded-xl bg-athlium-primary px-4 py-2 text-sm font-semibold text-athlium-text transition hover:brightness-110"
-          (click)="createUser()"
-        >
-          Crear usuario
-        </button>
-      </div>
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Superadmin</p>
+      <h1 class="mt-2 font-title text-3xl font-semibold">Usuarios</h1>
+      <p class="mt-1 text-sm text-athlium-muted">Gestion de usuarios registrados.</p>
     </div>
   </header>
 
@@ -155,15 +142,8 @@
       <span class="material-symbols-outlined text-3xl text-athlium-muted">person_off</span>
       <h3 class="mt-2 font-title text-2xl font-semibold">No hay usuarios</h3>
       <p class="mt-1 text-sm text-athlium-muted">
-        Cuando agregues usuarios los veras listados aqui.
+        Los usuarios se crean desde Register y apareceran aqui.
       </p>
-      <button
-        type="button"
-        class="mt-4 rounded-xl bg-athlium-primary px-4 py-2 text-sm font-semibold text-athlium-text transition hover:brightness-110"
-        (click)="createUser()"
-      >
-        Crear primer usuario
-      </button>
     </article>
   }
 

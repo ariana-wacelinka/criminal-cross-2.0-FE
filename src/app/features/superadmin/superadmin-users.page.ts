@@ -43,10 +43,6 @@ export class SuperadminUsersPage {
     return `${start}-${end} de ${page.total}`;
   });
 
-  protected async createUser(): Promise<void> {
-    await this.router.navigateByUrl('/users/create');
-  }
-
   protected toggleUserMenu(userId: number): void {
     this.openUserMenuId.update((current) => (current === userId ? null : userId));
   }

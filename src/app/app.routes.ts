@@ -97,11 +97,6 @@ export const routes: Routes = [
         loadComponent: () => import('./features/superadmin').then((m) => m.SuperadminUsersPage),
       },
       {
-        path: 'users/create',
-        loadComponent: () =>
-          import('./features/superadmin').then((m) => m.SuperadminUserCreatePage),
-      },
-      {
         path: 'users/:userId',
         loadComponent: () =>
           import('./features/superadmin').then((m) => m.SuperadminUserDetailPage),
