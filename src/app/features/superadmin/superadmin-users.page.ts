@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
+import { switchMap } from 'rxjs';
 import { UsersApi } from '../../core/api/users.api';
 
 @Component({
@@ -13,8 +14,39 @@ export class SuperadminUsersPage {
   private readonly router = inject(Router);
   private readonly usersApi = inject(UsersApi);
   protected readonly openUserMenuId = signal<number | null>(null);
+  protected readonly currentPage = signal(0);
+  protected readonly pageSize = 10;
 
-  protected readonly users = toSignal(this.usersApi.getAll(), { initialValue: [] });
+  protected readonly usersPage = toSignal(
+    toObservable(this.currentPage).pipe(
+      switchMap((page) => this.usersApi.getPage(page, this.pageSize)),
+    ),
+    {
+      initialValue: {
+        items: [],
+        total: 0,
+        page: 0,
+        size: this.pageSize,
+      },
+    },
+  );
+  protected readonly users = computed(() => this.usersPage().items);
+  protected readonly hasItems = computed(() => this.users().length > 0);
+  protected readonly totalPages = computed(() => {
+    const { total, size } = this.usersPage();
+    return Math.max(1, Math.ceil(total / Math.max(1, size)));
+  });
+  protected readonly canGoPrev = computed(() => this.currentPage() > 0);
+  protected readonly canGoNext = computed(() => this.currentPage() < this.totalPages() - 1);
+  protected readonly pageLabel = computed(() => {
+    const page = this.usersPage();
+    if (!page.total) {
+      return 'Sin resultados';
+    }
+    const start = page.page * page.size + 1;
+    const end = Math.min((page.page + 1) * page.size, page.total);
+    return `${start}-${end} de ${page.total}`;
+  });
 
   protected async createUser(): Promise<void> {
     await this.router.navigateByUrl('/users/create');
@@ -22,6 +54,22 @@ export class SuperadminUsersPage {
 
   protected toggleUserMenu(userId: number): void {
     this.openUserMenuId.update((current) => (current === userId ? null : userId));
+  }
+
+  protected previousPage(): void {
+    if (!this.canGoPrev()) {
+      return;
+    }
+    this.currentPage.update((page) => page - 1);
+    this.openUserMenuId.set(null);
+  }
+
+  protected nextPage(): void {
+    if (!this.canGoNext()) {
+      return;
+    }
+    this.currentPage.update((page) => page + 1);
+    this.openUserMenuId.set(null);
   }
 
   protected async viewUser(userId: number): Promise<void> {

@@ -43,15 +43,15 @@
     </button>
   </aside>
 
-  <section class="flex min-w-0 flex-1 flex-col pb-24 lg:pb-0">
+  <section class="flex min-w-0 flex-1 flex-col pb-4 lg:pb-0">
     <header
-      class="sticky top-0 z-10 border-b border-athlium-primary/10 bg-athlium-bg/95 px-4 py-5 backdrop-blur lg:px-8"
+      class="sticky top-0 z-10 hidden border-b border-athlium-primary/10 bg-athlium-bg/95 px-4 py-5 backdrop-blur lg:block lg:px-8"
     >
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 class="font-title text-2xl font-semibold">ATHLIUM Dashboard</h1>
           <p class="text-sm text-athlium-muted">
-            Estructura base por roles con navegacion lazy dentro del scaffold
+            Navegacion por roles con acceso rapido a cada modulo
           </p>
         </div>
 
@@ -77,24 +77,58 @@
     </div>
   </section>
 
-  <nav
-    class="fixed inset-x-0 bottom-0 z-20 border-t border-athlium-primary/10 bg-athlium-surface px-2 py-2 lg:hidden"
+  <button
+    type="button"
+    class="fixed bottom-4 right-4 z-30 grid h-11 w-11 place-content-center rounded-full border border-athlium-primary/30 bg-athlium-surface/95 text-athlium-text shadow-[0_14px_26px_rgba(3,9,31,0.55)] transition hover:bg-athlium-surface-2/80 lg:hidden"
+    (click)="toggleMobileMenu()"
+    aria-label="Abrir menu"
   >
-    <ul class="grid grid-cols-3 gap-1">
-      @for (tab of mobileTabs; track tab) {
-        <li>
+    <span class="material-symbols-outlined text-xl leading-none">menu</span>
+  </button>
+
+  @if (isMobileMenuOpen()) {
+    <div
+      class="fixed inset-0 z-40 bg-athlium-bg/65 backdrop-blur-sm lg:hidden"
+      (click)="closeMobileMenu()"
+    ></div>
+    <aside
+      class="fixed inset-x-3 bottom-4 z-50 rounded-panel border border-athlium-primary/14 bg-athlium-surface p-4 shadow-soft lg:hidden"
+    >
+      <p class="text-xs font-semibold uppercase tracking-[0.14em] text-athlium-muted">Navegacion</p>
+      <div
+        class="mt-3 rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/55 px-3 py-2 text-xs text-athlium-muted"
+      >
+        Rol activo: <span class="font-semibold text-athlium-text">{{ currentRole() }}</span>
+      </div>
+
+      <nav class="mt-3 grid gap-2 text-sm">
+        @for (item of roleNavItems(); track item.path + item.label) {
           <button
             type="button"
-            class="w-full rounded-lg px-2 py-2 text-xs"
-            [class.bg-athlium-primary]="tab === 'Dashboard'"
-            [class.text-athlium-text]="tab === 'Dashboard'"
-            [class.text-athlium-muted]="tab !== 'Dashboard'"
-            (click)="onMobileTab(tab)"
+            class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 px-3 py-2 text-left text-athlium-text transition hover:bg-athlium-surface-2/55"
+            (click)="navigateTo(item.path)"
           >
-            {{ tab }}
+            {{ item.label }}
           </button>
-        </li>
-      }
-    </ul>
-  </nav>
+        }
+      </nav>
+
+      <div class="mt-3 flex items-center gap-2">
+        <button
+          type="button"
+          class="flex-1 rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 px-3 py-2 text-sm text-athlium-text transition hover:bg-athlium-surface-2/55"
+          (click)="goToMe()"
+        >
+          Mi perfil
+        </button>
+        <button
+          type="button"
+          class="flex-1 rounded-xl border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/20"
+          (click)="logout()"
+        >
+          Logout
+        </button>
+      </div>
+    </aside>
+  }
 </main>

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthFacadeService, AuthSessionService } from '../../core/auth';
 import { Role } from '../../core/domain/models';
@@ -54,32 +54,29 @@ export class HomePage {
     }
   });
 
-  protected readonly mobileTabs = ['Dashboard', 'Perfil', 'Logout'];
+  protected readonly isMobileMenuOpen = signal(false);
 
-  protected async goToHome(): Promise<void> {
-    await this.router.navigateByUrl('/dashboard');
+  protected toggleMobileMenu(): void {
+    this.isMobileMenuOpen.update((value) => !value);
+  }
+
+  protected closeMobileMenu(): void {
+    this.isMobileMenuOpen.set(false);
+  }
+
+  protected async navigateTo(path: string): Promise<void> {
+    this.closeMobileMenu();
+    await this.router.navigateByUrl(path);
   }
 
   protected async goToMe(): Promise<void> {
+    this.closeMobileMenu();
     await this.router.navigateByUrl('/me');
   }
 
   protected async logout(): Promise<void> {
+    this.closeMobileMenu();
     await this.authFacade.logout();
     await this.router.navigateByUrl('/login');
-  }
-
-  protected async onMobileTab(tab: string): Promise<void> {
-    if (tab === 'Dashboard') {
-      await this.goToHome();
-      return;
-    }
-
-    if (tab === 'Perfil') {
-      await this.goToMe();
-      return;
-    }
-
-    await this.logout();
   }
 }

@@ -1,3 +1,4 @@
+import { Location } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthFacadeService, AuthSessionService } from '../../core/auth';
@@ -10,12 +11,18 @@ import { AuthFacadeService, AuthSessionService } from '../../core/auth';
 })
 export class MePage {
   private readonly authFacade = inject(AuthFacadeService);
+  private readonly location = inject(Location);
   private readonly router = inject(Router);
 
   protected readonly authSession = inject(AuthSessionService);
 
-  protected async goHome(): Promise<void> {
-    await this.router.navigateByUrl('/');
+  protected async goBack(): Promise<void> {
+    if (window.history.length > 1) {
+      this.location.back();
+      return;
+    }
+
+    await this.router.navigateByUrl('/dashboard');
   }
 
   protected async logout(): Promise<void> {

@@ -28,6 +28,11 @@ export const routes: Routes = [
           import('./features/superadmin').then((m) => m.SuperadminOrganizationsPage),
       },
       {
+        path: 'organizations/create',
+        loadComponent: () =>
+          import('./features/superadmin').then((m) => m.SuperadminOrganizationCreatePage),
+      },
+      {
         path: 'organizations/:organizationId',
         loadComponent: () =>
           import('./features/superadmin').then((m) => m.SuperadminOrganizationDetailPage),
@@ -48,6 +53,11 @@ export const routes: Routes = [
           import('./features/superadmin').then((m) => m.SuperadminHeadquartersPage),
       },
       {
+        path: 'headquarters/create',
+        loadComponent: () =>
+          import('./features/superadmin').then((m) => m.SuperadminHeadquartersCreatePage),
+      },
+      {
         path: 'headquarters/:headquartersId',
         loadComponent: () =>
           import('./features/superadmin').then((m) => m.SuperadminHeadquartersDetailPage),
@@ -60,6 +70,25 @@ export const routes: Routes = [
       {
         path: 'users',
         loadComponent: () => import('./features/superadmin').then((m) => m.SuperadminUsersPage),
+      },
+      {
+        path: 'users/create',
+        loadComponent: () =>
+          import('./features/superadmin').then((m) => m.SuperadminUserCreatePage),
+      },
+      {
+        path: 'users/:userId',
+        loadComponent: () =>
+          import('./features/superadmin').then((m) => m.SuperadminUserDetailPage),
+      },
+      {
+        path: 'users/:userId/edit',
+        loadComponent: () => import('./features/superadmin').then((m) => m.SuperadminUserEditPage),
+      },
+      {
+        path: 'users/:userId/delete',
+        loadComponent: () =>
+          import('./features/superadmin').then((m) => m.SuperadminUserDeletePage),
       },
     ],
   },

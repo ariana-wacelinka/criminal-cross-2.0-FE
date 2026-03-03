@@ -1,3 +1,4 @@
+import { Location } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -14,6 +15,7 @@ import { Headquarters } from '../../core/domain/models';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SuperadminOrganizationDetailPage {
+  private readonly location = inject(Location);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly authSession = inject(AuthSessionService);
@@ -38,6 +40,11 @@ export class SuperadminOrganizationDetailPage {
   }
 
   protected async goBack(): Promise<void> {
+    if (window.history.length > 1) {
+      this.location.back();
+      return;
+    }
+
     await this.router.navigateByUrl('/organizations');
   }
 

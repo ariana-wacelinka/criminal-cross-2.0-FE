@@ -4,14 +4,22 @@
   ></div>
 
   <section
-    class="relative rounded-panel border border-athlium-primary/10 bg-athlium-surface p-6 shadow-soft backdrop-blur"
+    class="ath-reveal relative rounded-panel border border-athlium-primary/10 bg-athlium-surface p-6 shadow-soft backdrop-blur"
   >
-    <div
-      class="flex flex-wrap items-center justify-between gap-4 border-b border-athlium-primary/10 pb-5"
-    >
+    <div class="flex flex-wrap items-center gap-4 border-b border-athlium-primary/10 pb-5">
       <div class="flex items-center gap-3">
+        <button
+          type="button"
+          class="grid h-8 w-8 place-content-center text-athlium-muted transition hover:text-athlium-text"
+          (click)="goBack()"
+          aria-label="Volver"
+        >
+          <span class="material-symbols-outlined text-base leading-none">arrow_back_ios_new</span>
+        </button>
+
         <div
-          class="grid h-12 w-12 place-content-center rounded-xl bg-athlium-surface-2 text-lg font-semibold text-athlium-text"
+          class="ath-reveal grid h-12 w-12 place-content-center rounded-xl bg-athlium-surface-2 text-lg font-semibold text-athlium-text"
+          style="animation-delay: 80ms"
         >
           {{ (authSession.user()?.name || 'U').charAt(0).toUpperCase() }}
         </div>
@@ -20,50 +28,38 @@
           <p class="text-sm text-athlium-muted">Vista web del perfil administrativo</p>
         </div>
       </div>
-
-      <button
-        type="button"
-        class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 px-3 py-2 text-sm text-athlium-text transition hover:bg-athlium-surface-2/55"
-        (click)="goHome()"
-      >
-        Volver al panel
-      </button>
     </div>
 
     @if (authSession.user(); as user) {
       <div class="mt-6 grid gap-4 lg:grid-cols-3">
         <dl class="grid gap-3 text-sm lg:col-span-2">
           <div
-            class="rounded-xl border border-athlium-primary/10 bg-athlium-surface-2/45 px-4 py-3"
+            class="ath-reveal rounded-xl border border-athlium-primary/10 bg-athlium-surface-2/45 px-4 py-3"
+            style="animation-delay: 120ms"
           >
             <dt class="text-athlium-muted">Nombre</dt>
             <dd class="mt-1 text-base font-semibold">{{ user.name }}</dd>
           </div>
           <div
-            class="rounded-xl border border-athlium-primary/10 bg-athlium-surface-2/45 px-4 py-3"
+            class="ath-reveal rounded-xl border border-athlium-primary/10 bg-athlium-surface-2/45 px-4 py-3"
+            style="animation-delay: 180ms"
           >
             <dt class="text-athlium-muted">Email</dt>
             <dd class="mt-1 text-base font-semibold">{{ user.email }}</dd>
           </div>
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div
-              class="rounded-xl border border-athlium-primary/10 bg-athlium-surface-2/45 px-4 py-3"
-            >
-              <dt class="text-athlium-muted">Proveedor</dt>
-              <dd class="mt-1 text-base font-semibold">{{ user.provider }}</dd>
-            </div>
-            <div
-              class="rounded-xl border border-athlium-primary/10 bg-athlium-surface-2/45 px-4 py-3"
-            >
-              <dt class="text-athlium-muted">Estado</dt>
-              <dd class="mt-1 text-base font-semibold">
-                {{ user.active ? 'Activo' : 'Inactivo' }}
-              </dd>
-            </div>
+          <div
+            class="ath-reveal rounded-xl border border-athlium-primary/10 bg-athlium-surface-2/45 px-4 py-3"
+            style="animation-delay: 240ms"
+          >
+            <dt class="text-athlium-muted">Proveedor</dt>
+            <dd class="mt-1 text-base font-semibold">{{ user.provider }}</dd>
           </div>
         </dl>
 
-        <aside class="rounded-xl border border-athlium-primary/10 bg-athlium-surface-2/35 p-4">
+        <aside
+          class="ath-reveal rounded-xl border border-athlium-primary/10 bg-athlium-surface-2/35 p-4"
+          style="animation-delay: 280ms"
+        >
           <p class="text-xs font-semibold uppercase tracking-[0.14em] text-athlium-muted">
             Roles activos
           </p>

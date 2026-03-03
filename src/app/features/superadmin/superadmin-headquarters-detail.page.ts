@@ -1,3 +1,4 @@
+import { Location } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -12,6 +13,7 @@ import { OrganizationsApi } from '../../core/api/organizations.api';
 })
 export class SuperadminHeadquartersDetailPage {
   private readonly route = inject(ActivatedRoute);
+  private readonly location = inject(Location);
   private readonly router = inject(Router);
   private readonly headquartersApi = inject(HeadquartersApi);
   private readonly organizationsApi = inject(OrganizationsApi);
@@ -37,6 +39,11 @@ export class SuperadminHeadquartersDetailPage {
   );
 
   protected async goBack(): Promise<void> {
+    if (window.history.length > 1) {
+      this.location.back();
+      return;
+    }
+
     await this.router.navigateByUrl('/headquarters');
   }
 }

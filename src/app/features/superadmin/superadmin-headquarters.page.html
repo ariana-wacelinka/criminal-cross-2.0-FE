@@ -22,65 +22,111 @@
     </div>
   </header>
 
-  <div
-    class="mt-5 overflow-visible rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
-  >
-    <table class="w-full text-left text-sm">
-      <thead class="text-athlium-muted">
-        <tr class="border-b border-athlium-primary/10">
-          <th class="py-2 font-medium">Sede</th>
-          <th class="py-2 font-medium">Organizacion</th>
-          <th class="py-2 pr-0 text-right font-medium"></th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (hq of headquartersView(); track hq.id) {
-          <tr class="relative border-b border-athlium-primary/10 last:border-b-0">
-            <td class="py-3 font-medium">{{ hq.name }}</td>
-            <td class="py-3 text-athlium-muted">{{ hq.organizationName }}</td>
-            <td class="py-3 pr-0">
-              <div class="relative flex justify-end">
-                <button
-                  type="button"
-                  class="grid h-8 w-8 place-content-center rounded-lg border border-athlium-primary/12 text-athlium-muted transition hover:bg-athlium-surface-2/45"
-                  (click)="toggleHeadquartersMenu(hq.id)"
-                >
-                  <span class="material-symbols-outlined text-base leading-none">more_vert</span>
-                </button>
-
-                @if (openHeadquartersMenuId() === hq.id) {
-                  <div
-                    class="absolute right-0 top-10 z-10 grid min-w-[140px] gap-1 rounded-xl border border-athlium-primary/10 bg-athlium-surface p-2 shadow-soft"
-                  >
-                    <button
-                      type="button"
-                      class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
-                      (click)="viewHeadquarters(hq.id)"
-                    >
-                      Ver
-                    </button>
-                    <button
-                      type="button"
-                      class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
-                      (click)="editHeadquarters(hq.id)"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      type="button"
-                      class="rounded-lg px-2 py-2 text-left text-sm text-red-300 transition hover:bg-red-500/10"
-                      (click)="openDeleteModal(hq)"
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                }
-              </div>
-            </td>
+  @if (hasItems()) {
+    <div
+      class="mt-5 overflow-visible rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+    >
+      <table class="w-full text-left text-sm">
+        <thead class="text-athlium-muted">
+          <tr class="border-b border-athlium-primary/10">
+            <th class="py-2 font-medium">Sede</th>
+            <th class="py-2 font-medium">Organizacion</th>
+            <th class="py-2 pr-0 text-right font-medium"></th>
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (hq of headquartersView(); track hq.id; let i = $index) {
+            <tr
+              class="ath-reveal relative border-b border-athlium-primary/10 last:border-b-0"
+              [style.animation-delay.ms]="i * 35"
+            >
+              <td class="py-3 font-medium">{{ hq.name }}</td>
+              <td class="py-3 text-athlium-muted">{{ hq.organizationName }}</td>
+              <td class="py-3 pr-0">
+                <div class="relative flex justify-end">
+                  <button
+                    type="button"
+                    class="grid h-8 w-8 place-content-center rounded-lg border border-athlium-primary/12 text-athlium-muted transition hover:bg-athlium-surface-2/45"
+                    (click)="toggleHeadquartersMenu(hq.id)"
+                  >
+                    <span class="material-symbols-outlined text-base leading-none">more_vert</span>
+                  </button>
+
+                  @if (openHeadquartersMenuId() === hq.id) {
+                    <div
+                      class="absolute right-0 top-10 z-10 grid min-w-[140px] gap-1 rounded-xl border border-athlium-primary/10 bg-athlium-surface p-2 shadow-soft"
+                    >
+                      <button
+                        type="button"
+                        class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
+                        (click)="viewHeadquarters(hq.id)"
+                      >
+                        Ver
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
+                        (click)="editHeadquarters(hq.id)"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-lg px-2 py-2 text-left text-sm text-red-300 transition hover:bg-red-500/10"
+                        (click)="openDeleteModal(hq)"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <article
+      class="ath-reveal mt-5 rounded-panel border border-athlium-primary/12 bg-athlium-surface/90 p-7 text-center shadow-soft"
+    >
+      <span class="material-symbols-outlined text-3xl text-athlium-muted">storefront</span>
+      <h3 class="mt-2 font-title text-2xl font-semibold">No hay sedes</h3>
+      <p class="mt-1 text-sm text-athlium-muted">
+        Crea tu primera sede para empezar a organizar actividades.
+      </p>
+      <button
+        type="button"
+        class="mt-4 rounded-xl bg-athlium-primary px-4 py-2 text-sm font-semibold text-athlium-text transition hover:brightness-110"
+        (click)="createHeadquarters()"
+      >
+        Crear primera sede
+      </button>
+    </article>
+  }
+
+  <div
+    class="mt-4 flex items-center justify-between gap-3 rounded-xl border border-athlium-primary/10 bg-athlium-surface/70 px-3 py-2 text-sm"
+  >
+    <p class="text-athlium-muted">{{ pageLabel() }}</p>
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        class="rounded-lg border border-athlium-primary/12 px-3 py-1.5 text-athlium-text transition enabled:hover:bg-athlium-surface-2/45 disabled:cursor-not-allowed disabled:opacity-45"
+        [disabled]="!canGoPrev()"
+        (click)="previousPage()"
+      >
+        Anterior
+      </button>
+      <button
+        type="button"
+        class="rounded-lg border border-athlium-primary/12 px-3 py-1.5 text-athlium-text transition enabled:hover:bg-athlium-surface-2/45 disabled:cursor-not-allowed disabled:opacity-45"
+        [disabled]="!canGoNext()"
+        (click)="nextPage()"
+      >
+        Siguiente
+      </button>
+    </div>
   </div>
 
   @if (deletingHeadquarters(); as selectedHeadquarters) {

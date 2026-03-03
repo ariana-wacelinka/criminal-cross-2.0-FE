@@ -1,7 +1,8 @@
 import { computed, ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { switchMap } from 'rxjs';
 import { AuthSessionService } from '../../core/auth';
 import { HeadquartersApi } from '../../core/api/headquarters.api';
 import { OrganizationsApi } from '../../core/api/organizations.api';
@@ -19,20 +20,45 @@ export class SuperadminHeadquartersPage {
   private readonly headquartersApi = inject(HeadquartersApi);
   private readonly organizationsApi = inject(OrganizationsApi);
 
-  protected readonly headquarters = signal<Headquarters[]>([]);
+  protected readonly currentPage = signal(0);
+  protected readonly pageSize = 8;
+  private readonly refreshTick = signal(0);
+
+  private readonly paginationRequest = computed(() => ({
+    page: this.currentPage(),
+    size: this.pageSize,
+    tick: this.refreshTick(),
+  }));
+
+  protected readonly headquartersPage = toSignal(
+    toObservable(this.paginationRequest).pipe(
+      switchMap(({ page, size }) => this.headquartersApi.getPage(page, size)),
+    ),
+    {
+      initialValue: {
+        items: [],
+        total: 0,
+        page: 0,
+        size: this.pageSize,
+      },
+    },
+  );
   protected readonly organizations = toSignal(this.organizationsApi.getAll(), { initialValue: [] });
   protected readonly openHeadquartersMenuId = signal<number | null>(null);
   protected readonly deletingHeadquarters = signal<Headquarters | null>(null);
   protected readonly credentialEmail = signal('');
   protected readonly credentialPassword = signal('');
   protected readonly deleteError = signal<string | null>(null);
-
-  constructor() {
-    void this.loadHeadquarters();
-  }
+  protected readonly hasItems = computed(() => this.headquartersPage().items.length > 0);
+  protected readonly totalPages = computed(() => {
+    const { total, size } = this.headquartersPage();
+    return Math.max(1, Math.ceil(total / Math.max(1, size)));
+  });
+  protected readonly canGoPrev = computed(() => this.currentPage() > 0);
+  protected readonly canGoNext = computed(() => this.currentPage() < this.totalPages() - 1);
 
   protected readonly headquartersView = computed(() =>
-    this.headquarters().map((hq) => ({
+    this.headquartersPage().items.map((hq) => ({
       ...hq,
       organizationName:
         this.organizations().find((organization) => organization.id === hq.organizationId)?.name ??
@@ -40,8 +66,34 @@ export class SuperadminHeadquartersPage {
     })),
   );
 
+  protected readonly pageLabel = computed(() => {
+    const page = this.headquartersPage();
+    if (!page.total) {
+      return 'Sin resultados';
+    }
+    const start = page.page * page.size + 1;
+    const end = Math.min((page.page + 1) * page.size, page.total);
+    return `${start}-${end} de ${page.total}`;
+  });
+
   protected async createHeadquarters(): Promise<void> {
     await this.router.navigateByUrl('/headquarters/create');
+  }
+
+  protected previousPage(): void {
+    if (!this.canGoPrev()) {
+      return;
+    }
+    this.currentPage.update((page) => page - 1);
+    this.openHeadquartersMenuId.set(null);
+  }
+
+  protected nextPage(): void {
+    if (!this.canGoNext()) {
+      return;
+    }
+    this.currentPage.update((page) => page + 1);
+    this.openHeadquartersMenuId.set(null);
   }
 
   protected toggleHeadquartersMenu(headquartersId: number): void {
@@ -108,12 +160,14 @@ export class SuperadminHeadquartersPage {
     }
 
     await firstValueFrom(this.headquartersApi.remove(selected.id));
-    this.headquarters.update((items) => items.filter((item) => item.id !== selected.id));
-    this.closeDeleteModal();
-  }
 
-  private async loadHeadquarters(): Promise<void> {
-    const items = await firstValueFrom(this.headquartersApi.getAll());
-    this.headquarters.set(items);
+    const pageAfterDelete = this.headquartersPage();
+    const isLastItemOnPage = pageAfterDelete.items.length === 1;
+    if (isLastItemOnPage && this.currentPage() > 0) {
+      this.currentPage.update((page) => page - 1);
+    }
+
+    this.refreshTick.update((value) => value + 1);
+    this.closeDeleteModal();
   }
 }

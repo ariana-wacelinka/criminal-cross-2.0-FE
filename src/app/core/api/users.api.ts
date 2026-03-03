@@ -1,52 +1,53 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { map, Observable, of } from 'rxjs';
-import { ApiResponse, Role, User } from '../domain/models';
+import { ApiResponse, PageResult, Role, User } from '../domain/models';
 import { API_BASE_URL } from '../http/api-base-url.token';
+import { toHttpParams } from '../http/http-params.util';
 
 const API_MOCK_MODE = true;
 
-const MOCK_USERS: User[] = [
-  {
-    id: 10,
-    name: 'Ariana',
-    lastName: 'Wacelinka',
-    email: 'ariana@athlium.app',
-    firebaseUid: 'mock-ariana',
-    roles: [Role.SUPERADMIN],
+const MOCK_USERS: User[] = Array.from({ length: 64 }, (_, index) => {
+  const id = index + 10;
+  const name = [
+    'Ariana',
+    'Juan',
+    'Sofia',
+    'Bruno',
+    'Camila',
+    'Marcos',
+    'Lucia',
+    'Franco',
+    'Valentina',
+    'Nicolas',
+  ][index % 10];
+  const lastName = [
+    'Wacelinka',
+    'Perez',
+    'Lopez',
+    'Mendez',
+    'Fernandez',
+    'Suarez',
+    'Gomez',
+    'Rossi',
+    'Diaz',
+    'Alonso',
+  ][Math.floor(index / 2) % 10];
+  const rolePool = [Role.SUPERADMIN, Role.ORG_ADMIN, Role.PROFESSOR, Role.CLIENT, Role.ORG_OWNER];
+  const role = rolePool[index % rolePool.length];
+  const email = `${name.toLowerCase()}.${lastName.toLowerCase()}${id}@athlium.app`;
+  return {
+    id,
+    name,
+    lastName,
+    email,
+    firebaseUid: buildMockFirebaseUid(email),
+    roles: [role],
     active: true,
-  },
-  {
-    id: 11,
-    name: 'Juan',
-    lastName: 'Perez',
-    email: 'juan@athlium.app',
-    firebaseUid: 'mock-juan',
-    roles: [Role.ORG_ADMIN],
-    active: true,
-  },
-  {
-    id: 12,
-    name: 'Sofia',
-    lastName: 'Lopez',
-    email: 'sofia@athlium.app',
-    firebaseUid: 'mock-sofia',
-    roles: [Role.PROFESSOR],
-    active: true,
-  },
-  {
-    id: 13,
-    name: 'Bruno',
-    lastName: 'Mendez',
-    email: 'bruno@athlium.app',
-    firebaseUid: 'mock-bruno',
-    roles: [Role.CLIENT],
-    active: false,
-  },
-];
+  };
+});
 
 export interface CreateUserRequest {
-  firebaseUid: string;
   email: string;
   name: string;
   lastName: string;
@@ -54,6 +55,20 @@ export interface CreateUserRequest {
 
 export interface UpdateRolesRequest {
   roles: Role[];
+}
+
+export interface UpdateUserRequest {
+  email: string;
+  name: string;
+  lastName: string;
+}
+
+function buildMockFirebaseUid(email: string): string {
+  const normalized = email
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return normalized ? `mock-${normalized}` : 'mock-user';
 }
 
 function unwrapApiResponse<T>(response: ApiResponse<T> | T): T {
@@ -69,6 +84,22 @@ export class UsersApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
 
+  getPage(page: number, size: number): Observable<PageResult<User>> {
+    if (API_MOCK_MODE) {
+      const safePage = Math.max(0, page);
+      const safeSize = Math.max(1, size);
+      const start = safePage * safeSize;
+      const items = MOCK_USERS.slice(start, start + safeSize);
+      return of({ items, total: MOCK_USERS.length, page: safePage, size: safeSize });
+    }
+
+    return this.http
+      .get<ApiResponse<PageResult<User>> | PageResult<User>>(`${this.baseUrl}/users`, {
+        params: toHttpParams({ page, size }),
+      })
+      .pipe(map(unwrapApiResponse));
+  }
+
   getAll(): Observable<User[]> {
     if (API_MOCK_MODE) {
       return of(MOCK_USERS);
@@ -79,17 +110,40 @@ export class UsersApi {
       .pipe(map(unwrapApiResponse));
   }
 
+  getById(userId: number): Observable<User> {
+    if (API_MOCK_MODE) {
+      const user = MOCK_USERS.find((item) => item.id === userId);
+      return of(
+        user ?? {
+          id: userId,
+          name: 'Usuario',
+          lastName: 'No encontrado',
+          email: 'unknown@athlium.app',
+          firebaseUid: 'unknown',
+          roles: [Role.CLIENT],
+          active: true,
+        },
+      );
+    }
+
+    return this.http
+      .get<ApiResponse<User> | User>(`${this.baseUrl}/users/${userId}`)
+      .pipe(map(unwrapApiResponse));
+  }
+
   create(body: CreateUserRequest): Observable<User> {
     if (API_MOCK_MODE) {
-      return of({
+      const created = {
         id: Date.now(),
-        firebaseUid: body.firebaseUid,
+        firebaseUid: buildMockFirebaseUid(body.email),
         email: body.email,
         name: body.name,
         lastName: body.lastName,
         roles: [Role.CLIENT],
         active: true,
-      });
+      };
+      MOCK_USERS.unshift(created);
+      return of(created);
     }
 
     return this.http
@@ -99,12 +153,51 @@ export class UsersApi {
 
   updateRoles(userId: number, body: UpdateRolesRequest): Observable<User> {
     if (API_MOCK_MODE) {
-      const previous = MOCK_USERS.find((user) => user.id === userId) ?? MOCK_USERS[0];
-      return of({ ...previous, id: userId, roles: body.roles });
+      const index = MOCK_USERS.findIndex((user) => user.id === userId);
+      const previous = index >= 0 ? MOCK_USERS[index] : MOCK_USERS[0];
+      const updated = { ...previous, id: userId, roles: body.roles };
+      if (index >= 0) {
+        MOCK_USERS[index] = updated;
+      }
+      return of(updated);
     }
 
     return this.http
       .put<ApiResponse<User> | User>(`${this.baseUrl}/users/${userId}/roles`, body)
       .pipe(map(unwrapApiResponse));
+  }
+
+  update(userId: number, body: UpdateUserRequest): Observable<User> {
+    if (API_MOCK_MODE) {
+      const index = MOCK_USERS.findIndex((user) => user.id === userId);
+      const previous = index >= 0 ? MOCK_USERS[index] : MOCK_USERS[0];
+      const updated = {
+        ...previous,
+        id: userId,
+        email: body.email,
+        name: body.name,
+        lastName: body.lastName,
+      };
+      if (index >= 0) {
+        MOCK_USERS[index] = updated;
+      }
+      return of(updated);
+    }
+
+    return this.http
+      .put<ApiResponse<User> | User>(`${this.baseUrl}/users/${userId}`, body)
+      .pipe(map(unwrapApiResponse));
+  }
+
+  remove(userId: number): Observable<void> {
+    if (API_MOCK_MODE) {
+      const index = MOCK_USERS.findIndex((user) => user.id === userId);
+      if (index >= 0) {
+        MOCK_USERS.splice(index, 1);
+      }
+      return of(void 0);
+    }
+
+    return this.http.delete<void>(`${this.baseUrl}/users/${userId}`);
   }
 }

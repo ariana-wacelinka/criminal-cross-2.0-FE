@@ -15,20 +15,22 @@ export class SuperadminPage {
   private readonly headquartersApi = inject(HeadquartersApi);
   private readonly usersApi = inject(UsersApi);
 
-  protected readonly organizations = toSignal(this.organizationsApi.getAll(), { initialValue: [] });
-  protected readonly headquarters = toSignal(this.headquartersApi.getAll(), { initialValue: [] });
-  protected readonly users = toSignal(this.usersApi.getAll(), { initialValue: [] });
+  protected readonly organizationsPage = toSignal(this.organizationsApi.getPage(0, 9), {
+    initialValue: { items: [], total: 0, page: 0, size: 9 },
+  });
+  protected readonly headquartersPage = toSignal(this.headquartersApi.getPage(0, 1), {
+    initialValue: { items: [], total: 0, page: 0, size: 1 },
+  });
+  protected readonly usersPage = toSignal(this.usersApi.getPage(0, 4), {
+    initialValue: { items: [], total: 0, page: 0, size: 4 },
+  });
 
-  protected readonly organizationsView = computed(() =>
-    this.organizations().map((organization) => ({
-      id: organization.id,
-      name: organization.name,
-      headquarters: this.headquarters().filter((hq) => hq.organizationId === organization.id)
-        .length,
-    })),
-  );
+  protected readonly organizationsView = computed(() => this.organizationsPage().items);
+  protected readonly usersView = computed(() => this.usersPage().items);
+  protected readonly hasOrganizations = computed(() => this.organizationsView().length > 0);
+  protected readonly hasUsers = computed(() => this.usersView().length > 0);
 
-  protected readonly totalOrganizations = computed(() => this.organizations().length);
-  protected readonly totalHeadquarters = computed(() => this.headquarters().length);
-  protected readonly totalUsers = computed(() => this.users().length);
+  protected readonly totalOrganizations = computed(() => this.organizationsPage().total);
+  protected readonly totalHeadquarters = computed(() => this.headquartersPage().total);
+  protected readonly totalUsers = computed(() => this.usersPage().total);
 }

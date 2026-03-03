@@ -54,3 +54,48 @@ h4 {
   font-family: Sora, Manrope, 'Segoe UI', sans-serif;
   letter-spacing: -0.02em;
 }
+
+@keyframes athFadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ath-reveal {
+  animation: athFadeSlideIn 320ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ath-reveal {
+    animation: none;
+  }
+}
+
+select.ath-select {
+  background-color: rgb(var(--ath-primary-soft-rgb) / 0.65);
+  color: var(--ath-text);
+}
+
+select.ath-select:focus {
+  background-color: rgb(var(--ath-surface-2-rgb) / 0.78);
+}
+
+select.ath-select:open {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  background-color: rgb(var(--ath-surface-2-rgb) / 0.9);
+}
+
+select.ath-select option {
+  background-color: rgb(var(--ath-surface-rgb) / 1);
+  color: var(--ath-text);
+}
+
+select.ath-select option:first-child {
+  color: var(--ath-muted);
+}
