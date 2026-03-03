@@ -3,29 +3,54 @@
 @tailwind utilities;
 
 :root {
-    color-scheme: dark;
-    --ath-bg: #0a1228;
-    --ath-surface: #111c36;
-    --ath-surface-2: #1a2747;
-    --ath-primary: #2f6bff;
-    --ath-accent: #a3e635;
-    --ath-text: #f3f6ff;
-    --ath-muted: #8fa1c7;
+  color-scheme: dark;
+  --ath-bg: #060f2a;
+  --ath-bg-rgb: 6 15 42;
+  --ath-bg-deep: #040a1d;
+  --ath-bg-deep-rgb: 4 10 29;
+  --ath-surface: #0f1c3e;
+  --ath-surface-rgb: 15 28 62;
+  --ath-surface-2: #162a57;
+  --ath-surface-2-rgb: 22 42 87;
+  --ath-primary: #356dff;
+  --ath-primary-rgb: 53 109 255;
+  --ath-primary-soft: #2a437e;
+  --ath-primary-soft-rgb: 42 67 126;
+  --ath-accent: #a4e93d;
+  --ath-accent-rgb: 164 233 61;
+  --ath-danger: #ff5f82;
+  --ath-danger-rgb: 255 95 130;
+  --ath-text: #eff4ff;
+  --ath-text-rgb: 239 244 255;
+  --ath-muted: #92a8d6;
+  --ath-muted-rgb: 146 168 214;
 }
 
 * {
-    box-sizing: border-box;
+  box-sizing: border-box;
+  border-color: rgb(var(--ath-primary-rgb) / 0.12);
 }
 
 html,
 body {
-    margin: 0;
-    min-height: 100%;
-    background: var(--ath-bg);
-    color: var(--ath-text);
-    font-family: Inter, 'Segoe UI', Roboto, sans-serif;
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at 80% -10%, rgb(var(--ath-primary-rgb) / 0.2), transparent 45%),
+    radial-gradient(circle at 10% 20%, rgb(var(--ath-accent-rgb) / 0.08), transparent 35%),
+    linear-gradient(180deg, var(--ath-bg) 0%, var(--ath-bg-deep) 100%);
+  color: var(--ath-text);
+  font-family: Manrope, 'Segoe UI', sans-serif;
 }
 
 body {
-    line-height: 1.4;
+  line-height: 1.4;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: Sora, Manrope, 'Segoe UI', sans-serif;
+  letter-spacing: -0.02em;
 }
