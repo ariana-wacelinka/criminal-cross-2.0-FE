@@ -75,6 +75,11 @@ export class SuperadminOrganizationDetailPage {
     await this.router.navigateByUrl(`/headquarters/${headquartersId}`);
   }
 
+  protected async viewHeadquartersActivities(headquartersId: number): Promise<void> {
+    this.openHeadquartersMenuId.set(null);
+    await this.router.navigateByUrl(`/headquarters/${headquartersId}/activities`);
+  }
+
   protected async editHeadquarters(headquartersId: number): Promise<void> {
     this.openHeadquartersMenuId.set(null);
     await this.router.navigateByUrl(`/headquarters/${headquartersId}/edit`);

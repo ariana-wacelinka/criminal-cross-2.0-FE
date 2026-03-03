@@ -22,7 +22,17 @@
     </div>
   </header>
 
-  @if (hasItems()) {
+  @if (isLoading()) {
+    <div
+      class="mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+    >
+      <div class="space-y-2">
+        @for (item of [1, 2, 3, 4, 5, 6, 7, 8]; track item) {
+          <div class="h-11 rounded-lg bg-athlium-surface-2/60"></div>
+        }
+      </div>
+    </div>
+  } @else if (hasItems()) {
     <div
       class="mt-5 overflow-visible rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
     >
@@ -68,6 +78,13 @@
                       <button
                         type="button"
                         class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
+                        (click)="viewActivities(hq.id)"
+                      >
+                        Actividades
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
                         (click)="editHeadquarters(hq.id)"
                       >
                         Editar
@@ -107,29 +124,31 @@
     </article>
   }
 
-  <div
-    class="mt-4 flex items-center justify-between gap-3 rounded-xl border border-athlium-primary/10 bg-athlium-surface/70 px-3 py-2 text-sm"
-  >
-    <p class="text-athlium-muted">{{ pageLabel() }}</p>
-    <div class="flex items-center gap-2">
-      <button
-        type="button"
-        class="rounded-lg border border-athlium-primary/12 px-3 py-1.5 text-athlium-text transition enabled:hover:bg-athlium-surface-2/45 disabled:cursor-not-allowed disabled:opacity-45"
-        [disabled]="!canGoPrev()"
-        (click)="previousPage()"
-      >
-        Anterior
-      </button>
-      <button
-        type="button"
-        class="rounded-lg border border-athlium-primary/12 px-3 py-1.5 text-athlium-text transition enabled:hover:bg-athlium-surface-2/45 disabled:cursor-not-allowed disabled:opacity-45"
-        [disabled]="!canGoNext()"
-        (click)="nextPage()"
-      >
-        Siguiente
-      </button>
+  @if (!isLoading()) {
+    <div
+      class="mt-4 flex items-center justify-between gap-3 rounded-xl border border-athlium-primary/10 bg-athlium-surface/70 px-3 py-2 text-sm"
+    >
+      <p class="text-athlium-muted">{{ pageLabel() }}</p>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="rounded-lg border border-athlium-primary/12 px-3 py-1.5 text-athlium-text transition enabled:hover:bg-athlium-surface-2/45 disabled:cursor-not-allowed disabled:opacity-45"
+          [disabled]="!canGoPrev()"
+          (click)="previousPage()"
+        >
+          Anterior
+        </button>
+        <button
+          type="button"
+          class="rounded-lg border border-athlium-primary/12 px-3 py-1.5 text-athlium-text transition enabled:hover:bg-athlium-surface-2/45 disabled:cursor-not-allowed disabled:opacity-45"
+          [disabled]="!canGoNext()"
+          (click)="nextPage()"
+        >
+          Siguiente
+        </button>
+      </div>
     </div>
-  </div>
+  }
 
   @if (deletingHeadquarters(); as selectedHeadquarters) {
     <div class="fixed inset-0 z-40 bg-athlium-bg/70 backdrop-blur-sm"></div>

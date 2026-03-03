@@ -21,26 +21,21 @@ export class SuperadminUsersPage {
     toObservable(this.currentPage).pipe(
       switchMap((page) => this.usersApi.getPage(page, this.pageSize)),
     ),
-    {
-      initialValue: {
-        items: [],
-        total: 0,
-        page: 0,
-        size: this.pageSize,
-      },
-    },
+    { initialValue: null },
   );
-  protected readonly users = computed(() => this.usersPage().items);
+  protected readonly users = computed(() => this.usersPage()?.items ?? []);
+  protected readonly isLoading = computed(() => !this.usersPage());
   protected readonly hasItems = computed(() => this.users().length > 0);
   protected readonly totalPages = computed(() => {
-    const { total, size } = this.usersPage();
+    const total = this.usersPage()?.total ?? 0;
+    const size = this.usersPage()?.size ?? this.pageSize;
     return Math.max(1, Math.ceil(total / Math.max(1, size)));
   });
   protected readonly canGoPrev = computed(() => this.currentPage() > 0);
   protected readonly canGoNext = computed(() => this.currentPage() < this.totalPages() - 1);
   protected readonly pageLabel = computed(() => {
     const page = this.usersPage();
-    if (!page.total) {
+    if (!page || !page.total) {
       return 'Sin resultados';
     }
     const start = page.page * page.size + 1;

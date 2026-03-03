@@ -22,7 +22,18 @@
     </div>
   </header>
 
-  @if (hasItems()) {
+  @if (isLoading()) {
+    <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      @for (item of [1, 2, 3, 4, 5, 6]; track item) {
+        <article
+          class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+        >
+          <div class="h-6 w-2/3 rounded bg-athlium-surface-2/70"></div>
+          <div class="mt-4 h-14 rounded-xl bg-athlium-surface-2/60"></div>
+        </article>
+      }
+    </div>
+  } @else if (hasItems()) {
     <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
       @for (org of organizationsView(); track org.id; let i = $index) {
         <article
@@ -92,27 +103,29 @@
     </article>
   }
 
-  <div
-    class="mt-4 flex items-center justify-between gap-3 rounded-xl border border-athlium-primary/10 bg-athlium-surface/70 px-3 py-2 text-sm"
-  >
-    <p class="text-athlium-muted">{{ pageLabel() }}</p>
-    <div class="flex items-center gap-2">
-      <button
-        type="button"
-        class="rounded-lg border border-athlium-primary/12 px-3 py-1.5 text-athlium-text transition enabled:hover:bg-athlium-surface-2/45 disabled:cursor-not-allowed disabled:opacity-45"
-        [disabled]="!canGoPrev()"
-        (click)="previousPage()"
-      >
-        Anterior
-      </button>
-      <button
-        type="button"
-        class="rounded-lg border border-athlium-primary/12 px-3 py-1.5 text-athlium-text transition enabled:hover:bg-athlium-surface-2/45 disabled:cursor-not-allowed disabled:opacity-45"
-        [disabled]="!canGoNext()"
-        (click)="nextPage()"
-      >
-        Siguiente
-      </button>
+  @if (!isLoading()) {
+    <div
+      class="mt-4 flex items-center justify-between gap-3 rounded-xl border border-athlium-primary/10 bg-athlium-surface/70 px-3 py-2 text-sm"
+    >
+      <p class="text-athlium-muted">{{ pageLabel() }}</p>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="rounded-lg border border-athlium-primary/12 px-3 py-1.5 text-athlium-text transition enabled:hover:bg-athlium-surface-2/45 disabled:cursor-not-allowed disabled:opacity-45"
+          [disabled]="!canGoPrev()"
+          (click)="previousPage()"
+        >
+          Anterior
+        </button>
+        <button
+          type="button"
+          class="rounded-lg border border-athlium-primary/12 px-3 py-1.5 text-athlium-text transition enabled:hover:bg-athlium-surface-2/45 disabled:cursor-not-allowed disabled:opacity-45"
+          [disabled]="!canGoNext()"
+          (click)="nextPage()"
+        >
+          Siguiente
+        </button>
+      </div>
     </div>
-  </div>
+  }
 </section>

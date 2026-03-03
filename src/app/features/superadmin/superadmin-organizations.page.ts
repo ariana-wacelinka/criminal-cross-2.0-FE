@@ -23,26 +23,21 @@ export class SuperadminOrganizationsPage {
     toObservable(this.currentPage).pipe(
       switchMap((page) => this.organizationsApi.getPage(page, this.pageSize)),
     ),
-    {
-      initialValue: {
-        items: [],
-        total: 0,
-        page: 0,
-        size: this.pageSize,
-      },
-    },
+    { initialValue: null },
   );
   protected readonly headquarters = toSignal(this.headquartersApi.getAll(), { initialValue: [] });
-  protected readonly hasItems = computed(() => this.organizationsPage().items.length > 0);
+  protected readonly isLoading = computed(() => !this.organizationsPage());
+  protected readonly hasItems = computed(() => (this.organizationsPage()?.items.length ?? 0) > 0);
   protected readonly totalPages = computed(() => {
-    const { total, size } = this.organizationsPage();
+    const total = this.organizationsPage()?.total ?? 0;
+    const size = this.organizationsPage()?.size ?? this.pageSize;
     return Math.max(1, Math.ceil(total / Math.max(1, size)));
   });
   protected readonly canGoPrev = computed(() => this.currentPage() > 0);
   protected readonly canGoNext = computed(() => this.currentPage() < this.totalPages() - 1);
 
   protected readonly organizationsView = computed(() =>
-    this.organizationsPage().items.map((organization) => ({
+    (this.organizationsPage()?.items ?? []).map((organization) => ({
       id: organization.id,
       name: organization.name,
       headquarters: this.headquarters().filter((hq) => hq.organizationId === organization.id)
@@ -52,7 +47,7 @@ export class SuperadminOrganizationsPage {
 
   protected readonly pageLabel = computed(() => {
     const page = this.organizationsPage();
-    if (!page.total) {
+    if (!page || !page.total) {
       return 'Sin resultados';
     }
     const start = page.page * page.size + 1;

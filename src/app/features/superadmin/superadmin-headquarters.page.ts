@@ -36,14 +36,7 @@ export class SuperadminHeadquartersPage {
     toObservable(this.paginationRequest).pipe(
       switchMap(({ page, size }) => this.headquartersApi.getPage(page, size)),
     ),
-    {
-      initialValue: {
-        items: [],
-        total: 0,
-        page: 0,
-        size: this.pageSize,
-      },
-    },
+    { initialValue: null },
   );
   protected readonly organizations = toSignal(this.organizationsApi.getAll(), { initialValue: [] });
   protected readonly openHeadquartersMenuId = signal<number | null>(null);
@@ -51,16 +44,18 @@ export class SuperadminHeadquartersPage {
   protected readonly credentialEmail = signal('');
   protected readonly credentialPassword = signal('');
   protected readonly deleteError = signal<string | null>(null);
-  protected readonly hasItems = computed(() => this.headquartersPage().items.length > 0);
+  protected readonly isLoading = computed(() => !this.headquartersPage());
+  protected readonly hasItems = computed(() => (this.headquartersPage()?.items.length ?? 0) > 0);
   protected readonly totalPages = computed(() => {
-    const { total, size } = this.headquartersPage();
+    const total = this.headquartersPage()?.total ?? 0;
+    const size = this.headquartersPage()?.size ?? this.pageSize;
     return Math.max(1, Math.ceil(total / Math.max(1, size)));
   });
   protected readonly canGoPrev = computed(() => this.currentPage() > 0);
   protected readonly canGoNext = computed(() => this.currentPage() < this.totalPages() - 1);
 
   protected readonly headquartersView = computed(() =>
-    this.headquartersPage().items.map((hq) => ({
+    (this.headquartersPage()?.items ?? []).map((hq) => ({
       ...hq,
       organizationName:
         this.organizations().find((organization) => organization.id === hq.organizationId)?.name ??
@@ -70,7 +65,7 @@ export class SuperadminHeadquartersPage {
 
   protected readonly pageLabel = computed(() => {
     const page = this.headquartersPage();
-    if (!page.total) {
+    if (!page || !page.total) {
       return 'Sin resultados';
     }
     const start = page.page * page.size + 1;
@@ -107,6 +102,11 @@ export class SuperadminHeadquartersPage {
   protected async viewHeadquarters(headquartersId: number): Promise<void> {
     this.openHeadquartersMenuId.set(null);
     await this.router.navigateByUrl(`/headquarters/${headquartersId}`);
+  }
+
+  protected async viewActivities(headquartersId: number): Promise<void> {
+    this.openHeadquartersMenuId.set(null);
+    await this.router.navigateByUrl(`/headquarters/${headquartersId}/activities`);
   }
 
   protected async editHeadquarters(headquartersId: number): Promise<void> {
@@ -165,7 +165,7 @@ export class SuperadminHeadquartersPage {
       await firstValueFrom(this.headquartersApi.remove(selected.id));
 
       const pageAfterDelete = this.headquartersPage();
-      const isLastItemOnPage = pageAfterDelete.items.length === 1;
+      const isLastItemOnPage = !!pageAfterDelete && pageAfterDelete.items.length === 1;
       if (isLastItemOnPage && this.currentPage() > 0) {
         this.currentPage.update((page) => page - 1);
       }
