@@ -64,4 +64,12 @@ export class HeadquartersApi {
 
     return this.http.put<Headquarters>(`${this.baseUrl}/headquarters/${id}`, body);
   }
+
+  remove(id: number): Observable<void> {
+    if (API_MOCK_MODE) {
+      return of(void 0);
+    }
+
+    return this.http.delete<void>(`${this.baseUrl}/headquarters/${id}`);
+  }
 }
