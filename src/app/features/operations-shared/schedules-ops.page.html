@@ -1,0 +1,225 @@
+<section class="px-4 py-6 text-athlium-text lg:px-8">
+  <header
+    class="ath-reveal rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Operaciones</p>
+    <h1 class="mt-2 font-title text-3xl font-semibold">{{ title }}</h1>
+    <p class="mt-1 text-sm text-athlium-muted">
+      Gestiona horarios por sede. La creacion y edicion se realiza en un panel aparte.
+    </p>
+  </header>
+
+  @if (headquarters().length > 1) {
+    <div class="ath-reveal mt-4 max-w-sm" style="animation-delay: 40ms">
+      <label class="grid gap-2 text-sm">
+        <span class="text-athlium-muted">Sede</span>
+        <select
+          class="ath-select appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+          [value]="selectedHeadquartersId()"
+          (change)="selectHeadquarters($any($event.target).value)"
+        >
+          @for (hq of headquarters(); track hq.id) {
+            <option [value]="hq.id">{{ hq.name }}</option>
+          }
+        </select>
+      </label>
+    </div>
+  }
+
+  <section
+    class="ath-reveal mt-5 flex flex-wrap items-center justify-between gap-3 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-4 shadow-soft"
+    style="animation-delay: 70ms"
+  >
+    <p class="text-sm text-athlium-muted">
+      Listado de horarios configurados para la sede seleccionada.
+    </p>
+    <button
+      type="button"
+      class="rounded-xl bg-athlium-primary px-4 py-2 text-sm font-semibold text-athlium-text transition hover:brightness-110"
+      (click)="openCreateForm()"
+    >
+      Crear horario para actividad
+    </button>
+  </section>
+
+  @if (showForm()) {
+    <form
+      class="ath-reveal mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+      style="animation-delay: 100ms"
+      [formGroup]="form"
+      (ngSubmit)="saveSchedule()"
+    >
+      <div class="flex items-center justify-between gap-2">
+        <h2 class="font-title text-xl font-semibold">
+          {{ editingScheduleId() ? 'Editar horario' : 'Nuevo horario' }}
+        </h2>
+        <button
+          type="button"
+          class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-athlium-muted"
+          (click)="closeForm()"
+        >
+          Cerrar
+        </button>
+      </div>
+
+      <div class="mt-4 grid gap-3 md:grid-cols-2">
+        <label class="grid gap-2 text-sm">
+          <span class="text-athlium-muted">Actividad</span>
+          <select
+            class="ath-select appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            formControlName="activityId"
+          >
+            <option [value]="0" disabled>Seleccionar actividad</option>
+            @for (activity of activitiesPage()?.content ?? []; track activity.id) {
+              <option [value]="activity.id">{{ activity.name }}</option>
+            }
+          </select>
+        </label>
+
+        <div class="grid gap-2 text-sm md:col-span-2">
+          <span class="text-athlium-muted">Dias</span>
+          <div class="flex flex-wrap gap-2">
+            @for (day of dayOptions; track day.value) {
+              <button
+                type="button"
+                class="rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] transition"
+                [class.border-athlium-primary/35]="isSelectedDay(day.value)"
+                [class.bg-athlium-primary/20]="isSelectedDay(day.value)"
+                [class.text-athlium-text]="isSelectedDay(day.value)"
+                [class.border-athlium-primary/12]="!isSelectedDay(day.value)"
+                [class.bg-athlium-surface-2/30]="!isSelectedDay(day.value)"
+                [class.text-athlium-muted]="!isSelectedDay(day.value)"
+                (click)="toggleDay(day.value)"
+              >
+                {{ day.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <label class="grid gap-2 text-sm">
+          <span class="text-athlium-muted">Hora inicio</span>
+          <input
+            class="appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            formControlName="startTime"
+            type="time"
+          />
+        </label>
+
+        <label class="grid gap-2 text-sm">
+          <span class="text-athlium-muted">Duracion (min)</span>
+          <input
+            class="appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            formControlName="durationMinutes"
+            type="number"
+          />
+        </label>
+
+        <label class="grid gap-2 text-sm">
+          <span class="text-athlium-muted">Desde</span>
+          <input
+            class="appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            formControlName="activeFrom"
+            type="date"
+          />
+        </label>
+
+        <label class="grid gap-2 text-sm">
+          <span class="text-athlium-muted">Hasta</span>
+          <input
+            class="appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            formControlName="activeUntil"
+            type="date"
+          />
+        </label>
+      </div>
+
+      <div class="mt-4 flex items-center gap-2">
+        <button
+          type="submit"
+          class="rounded-xl bg-athlium-primary px-4 py-2 text-sm font-semibold text-athlium-text transition hover:brightness-110"
+        >
+          {{ editingScheduleId() ? 'Guardar cambios' : 'Crear horario' }}
+        </button>
+        <button
+          type="button"
+          class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 px-4 py-2 text-sm font-semibold text-athlium-text transition hover:bg-athlium-surface-2/55"
+          (click)="closeForm()"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
+  }
+
+  @if (isLoading()) {
+    <div
+      class="ath-reveal mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+      style="animation-delay: 120ms"
+    >
+      <div class="space-y-2">
+        @for (item of [1, 2, 3, 4, 5]; track item) {
+          <div class="h-11 rounded-lg bg-athlium-surface-2/60"></div>
+        }
+      </div>
+    </div>
+  } @else if (hasItems()) {
+    <div
+      class="ath-reveal mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+      style="animation-delay: 120ms"
+    >
+      <table class="w-full text-left text-sm">
+        <thead class="text-athlium-muted">
+          <tr class="border-b border-athlium-primary/10">
+            <th class="py-2 font-medium">Actividad</th>
+            <th class="py-2 font-medium">Dias</th>
+            <th class="py-2 font-medium">Hora</th>
+            <th class="py-2 pr-0 text-right font-medium"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (schedule of schedules() ?? []; track schedule.id; let i = $index) {
+            <tr
+              class="ath-reveal border-b border-athlium-primary/10 last:border-b-0"
+              [style.animation-delay.ms]="i * 28"
+            >
+              <td class="py-3 font-medium">{{ activityName(schedule.activityId) }}</td>
+              <td class="py-3 text-athlium-muted">{{ formatWeekDays(schedule.weekDays) }}</td>
+              <td class="py-3 text-athlium-muted">
+                {{ schedule.startTime }} · {{ schedule.durationMinutes }}m
+              </td>
+              <td class="py-3 pr-0 text-right">
+                <div class="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    class="rounded-lg border border-athlium-primary/12 px-2 py-1 text-xs"
+                    (click)="editSchedule(schedule.id)"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    class="rounded-lg border border-red-400/35 bg-red-500/10 px-2 py-1 text-xs text-red-200"
+                    (click)="removeSchedule(schedule.id)"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <article
+      class="ath-reveal mt-5 rounded-panel border border-athlium-primary/12 bg-athlium-surface/90 p-7 text-center shadow-soft"
+      style="animation-delay: 120ms"
+    >
+      <h3 class="font-title text-2xl font-semibold">No hay horarios</h3>
+      <p class="mt-1 text-sm text-athlium-muted">
+        Crea un horario para empezar a calendarizar sesiones.
+      </p>
+    </article>
+  }
+</section>

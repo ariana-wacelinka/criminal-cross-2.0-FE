@@ -1,0 +1,247 @@
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+import { firstValueFrom, switchMap } from 'rxjs';
+import {
+  ActivitySchedulesApi,
+  CreateActivityScheduleRequest,
+} from '../../core/api/activity-schedules.api';
+import { ActivitiesApi } from '../../core/api/activities.api';
+import { HeadquartersApi } from '../../core/api/headquarters.api';
+import { WeekDay } from '../../core/domain/models';
+import { UiToastService } from '../../core/ui/toast.service';
+
+@Component({
+  selector: 'app-schedules-ops-page',
+  imports: [ReactiveFormsModule],
+  templateUrl: './schedules-ops.page.html',
+  styles: [':host { display: block; }'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class SchedulesOpsPage {
+  private readonly route = inject(ActivatedRoute);
+  private readonly schedulesApi = inject(ActivitySchedulesApi);
+  private readonly activitiesApi = inject(ActivitiesApi);
+  private readonly headquartersApi = inject(HeadquartersApi);
+  private readonly toast = inject(UiToastService);
+
+  private readonly scope = this.route.snapshot.data['scope'] as 'org' | 'hq';
+  private readonly organizationId = 1;
+  private readonly fixedHeadquartersId = 101;
+  protected readonly title = this.scope === 'org' ? 'Horarios por sede' : 'Horarios';
+  private readonly refreshTick = signal(0);
+
+  protected readonly selectedHeadquartersId = signal<number>(
+    this.scope === 'hq' ? this.fixedHeadquartersId : 0,
+  );
+  protected readonly showForm = signal(false);
+  protected readonly editingScheduleId = signal<number | null>(null);
+  protected readonly dayOptions: ReadonlyArray<{ value: WeekDay; label: string }> = [
+    { value: WeekDay.MONDAY, label: 'Lunes' },
+    { value: WeekDay.TUESDAY, label: 'Martes' },
+    { value: WeekDay.WEDNESDAY, label: 'Miércoles' },
+    { value: WeekDay.THURSDAY, label: 'Jueves' },
+    { value: WeekDay.FRIDAY, label: 'Viernes' },
+    { value: WeekDay.SATURDAY, label: 'Sábado' },
+    { value: WeekDay.SUNDAY, label: 'Domingo' },
+  ];
+  protected readonly selectedWeekDays = signal<WeekDay[]>([WeekDay.MONDAY, WeekDay.WEDNESDAY]);
+
+  protected readonly headquartersPage = toSignal(
+    this.headquartersApi.getPage(0, 100, this.organizationId),
+    { initialValue: null },
+  );
+  protected readonly headquarters = computed(() => this.headquartersPage()?.items ?? []);
+
+  private readonly schedulesRequest = computed(() => ({
+    headquartersId: this.selectedHeadquartersId(),
+    refresh: this.refreshTick(),
+  }));
+
+  protected readonly schedules = toSignal(
+    toObservable(this.schedulesRequest).pipe(
+      switchMap(({ headquartersId }) =>
+        headquartersId
+          ? this.schedulesApi.getAll(headquartersId)
+          : this.schedulesApi.getAll(this.fixedHeadquartersId),
+      ),
+    ),
+    { initialValue: null },
+  );
+
+  protected readonly activitiesPage = toSignal(
+    toObservable(this.selectedHeadquartersId).pipe(
+      switchMap((headquartersId) =>
+        this.activitiesApi.getAll({
+          hqId: headquartersId || this.fixedHeadquartersId,
+          page: 0,
+          size: 100,
+        }),
+      ),
+    ),
+    { initialValue: null },
+  );
+
+  protected readonly isLoading = computed(() => !this.schedules() || !this.activitiesPage());
+  protected readonly hasItems = computed(() => (this.schedules()?.length ?? 0) > 0);
+
+  protected readonly form = new FormGroup({
+    activityId: new FormControl(0, { nonNullable: true, validators: [Validators.min(1)] }),
+    startTime: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    durationMinutes: new FormControl<number | null>(null, {
+      validators: [Validators.required, Validators.min(15)],
+    }),
+    activeFrom: new FormControl('', { nonNullable: true }),
+    activeUntil: new FormControl('', { nonNullable: true }),
+  });
+
+  constructor() {
+    effect(() => {
+      const headquarters = this.headquarters();
+      if (this.scope === 'org' && !this.selectedHeadquartersId() && headquarters.length) {
+        this.selectedHeadquartersId.set(headquarters[0].id);
+      }
+    });
+  }
+
+  protected selectHeadquarters(value: string): void {
+    if (this.scope === 'hq') {
+      return;
+    }
+    this.selectedHeadquartersId.set(Number(value));
+    this.editingScheduleId.set(null);
+  }
+
+  protected editSchedule(scheduleId: number): void {
+    const schedule = this.schedules()?.find((item) => item.id === scheduleId);
+    if (!schedule) {
+      return;
+    }
+
+    this.editingScheduleId.set(scheduleId);
+    this.showForm.set(true);
+    this.selectedWeekDays.set((schedule.weekDays ?? []) as WeekDay[]);
+    this.form.patchValue({
+      activityId: schedule.activityId,
+      startTime: schedule.startTime,
+      durationMinutes: schedule.durationMinutes,
+      activeFrom: schedule.activeFrom ?? '',
+      activeUntil: schedule.activeUntil ?? '',
+    });
+  }
+
+  protected resetForm(): void {
+    this.selectedWeekDays.set([]);
+    this.form.patchValue({
+      activityId: 0,
+      startTime: '',
+      durationMinutes: null,
+      activeFrom: '',
+      activeUntil: '',
+    });
+  }
+
+  protected openCreateForm(): void {
+    this.editingScheduleId.set(null);
+    this.resetForm();
+    this.showForm.set(true);
+  }
+
+  protected closeForm(): void {
+    this.editingScheduleId.set(null);
+    this.showForm.set(false);
+    this.resetForm();
+  }
+
+  protected async saveSchedule(): Promise<void> {
+    if (this.form.invalid || !this.selectedHeadquartersId()) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    if (!this.selectedWeekDays().length) {
+      this.toast.error('Selecciona al menos un dia.');
+      return;
+    }
+
+    const payload: CreateActivityScheduleRequest = {
+      organizationId: this.organizationId,
+      headquartersId: this.selectedHeadquartersId(),
+      activityId: this.form.controls.activityId.value,
+      weekDays: this.selectedWeekDays(),
+      startTime: this.form.controls.startTime.value,
+      durationMinutes: this.form.controls.durationMinutes.value!,
+      active: true,
+      schedulerType: 'WEEKLY_RANGE',
+      templateType: 'WEEKLY_RANGE',
+      activeFrom: this.form.controls.activeFrom.value || undefined,
+      activeUntil: this.form.controls.activeUntil.value || undefined,
+    };
+
+    try {
+      if (this.editingScheduleId()) {
+        await firstValueFrom(this.schedulesApi.update(this.editingScheduleId()!, payload));
+        this.toast.success('Horario actualizado.');
+      } else {
+        await firstValueFrom(this.schedulesApi.create(payload));
+        this.toast.success('Horario creado.');
+      }
+
+      this.refreshTick.update((value) => value + 1);
+      this.closeForm();
+    } catch {
+      this.toast.error('No se pudo guardar el horario.');
+    }
+  }
+
+  protected async removeSchedule(scheduleId: number): Promise<void> {
+    try {
+      await firstValueFrom(this.schedulesApi.remove(scheduleId));
+      this.refreshTick.update((value) => value + 1);
+      this.toast.success('Horario eliminado.');
+      if (this.editingScheduleId() === scheduleId) {
+        this.closeForm();
+      }
+    } catch {
+      this.toast.error('No se pudo eliminar el horario.');
+    }
+  }
+
+  protected activityName(activityId: number): string {
+    return (
+      this.activitiesPage()?.content.find((activity) => activity.id === activityId)?.name ??
+      `Actividad #${activityId}`
+    );
+  }
+
+  protected isSelectedDay(day: WeekDay): boolean {
+    return this.selectedWeekDays().includes(day);
+  }
+
+  protected toggleDay(day: WeekDay): void {
+    this.selectedWeekDays.update((days) =>
+      days.includes(day) ? days.filter((item) => item !== day) : [...days, day],
+    );
+  }
+
+  protected formatWeekDays(days: WeekDay[] | undefined): string {
+    if (!days?.length) {
+      return '-';
+    }
+
+    return days
+      .map((day) => this.dayOptions.find((option) => option.value === day)?.label ?? day)
+      .join(', ');
+  }
+}
