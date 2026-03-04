@@ -1,0 +1,175 @@
+<section class="px-4 py-6 text-athlium-text lg:px-8">
+  <header
+    class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">
+        Admin de organización
+      </p>
+      <h1 class="mt-2 font-title text-3xl font-semibold">Usuarios de la organización</h1>
+      <p class="mt-1 text-sm text-athlium-muted">Gestión de usuarios de la organización.</p>
+    </div>
+  </header>
+
+  @if (isLoading()) {
+    <div
+      class="mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+    >
+      <div class="space-y-2">
+        @for (item of [1, 2, 3, 4, 5]; track item) {
+          <div class="h-11 rounded-lg bg-athlium-surface-2/60"></div>
+        }
+      </div>
+    </div>
+  } @else if (hasItems()) {
+    <div
+      class="mt-5 overflow-visible rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+    >
+      <ul class="grid gap-3 md:hidden">
+        @for (user of users(); track user.id; let i = $index) {
+          <li
+            class="ath-reveal relative z-0 isolate rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 p-3"
+            [class.z-30]="openUserMenuId() === user.id"
+            [style.animation-delay.ms]="i * 45"
+          >
+            <button
+              type="button"
+              class="absolute right-3 top-3 grid h-8 w-8 place-content-center rounded-lg border border-athlium-primary/12 text-athlium-muted transition hover:bg-athlium-surface-2/45"
+              (click)="toggleUserMenu(user.id)"
+            >
+              <span class="material-symbols-outlined text-base leading-none">more_vert</span>
+            </button>
+
+            <p class="pr-10 font-medium">{{ user.name }} {{ user.lastName }}</p>
+            <p class="mt-1 break-all pr-10 text-sm text-athlium-muted">{{ user.email }}</p>
+
+            @if (openUserMenuId() === user.id) {
+              <div
+                class="absolute right-3 top-12 z-40 grid min-w-[150px] gap-1 rounded-xl border border-athlium-primary/20 bg-athlium-surface p-2 shadow-[0_16px_30px_rgba(3,9,31,0.62)]"
+                style="background-color: rgb(var(--ath-surface-rgb) / 0.995)"
+              >
+                <button
+                  type="button"
+                  class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
+                  (click)="viewUser(user.id)"
+                >
+                  Ver
+                </button>
+                <button
+                  type="button"
+                  class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
+                  (click)="editUserRoles(user.id)"
+                >
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  class="rounded-lg px-2 py-2 text-left text-sm text-red-300 transition hover:bg-red-500/10"
+                  (click)="deleteUser(user.id)"
+                >
+                  Eliminar
+                </button>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+
+      <table class="hidden w-full text-left text-sm md:table">
+        <thead class="text-athlium-muted">
+          <tr class="border-b border-athlium-primary/10">
+            <th class="py-2 font-medium">Nombre</th>
+            <th class="py-2 font-medium">Email</th>
+            <th class="py-2 pr-0 text-right font-medium"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of users(); track user.id; let i = $index) {
+            <tr
+              class="ath-reveal relative z-0 border-b border-athlium-primary/10 last:border-b-0"
+              [class.z-30]="openUserMenuId() === user.id"
+              [style.animation-delay.ms]="i * 30"
+            >
+              <td class="py-3 font-medium">{{ user.name }} {{ user.lastName }}</td>
+              <td class="py-3 text-athlium-muted">{{ user.email }}</td>
+              <td class="py-3 pr-0">
+                <div class="relative flex justify-end">
+                  <button
+                    type="button"
+                    class="grid h-8 w-8 place-content-center rounded-lg border border-athlium-primary/12 text-athlium-muted transition hover:bg-athlium-surface-2/45"
+                    (click)="toggleUserMenu(user.id)"
+                  >
+                    <span class="material-symbols-outlined text-base leading-none">more_vert</span>
+                  </button>
+
+                  @if (openUserMenuId() === user.id) {
+                    <div
+                      class="absolute right-0 top-10 z-40 grid min-w-[150px] gap-1 rounded-xl border border-athlium-primary/20 bg-athlium-surface p-2 shadow-[0_16px_30px_rgba(3,9,31,0.62)]"
+                      style="background-color: rgb(var(--ath-surface-rgb) / 0.995)"
+                    >
+                      <button
+                        type="button"
+                        class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
+                        (click)="viewUser(user.id)"
+                      >
+                        Ver
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
+                        (click)="editUserRoles(user.id)"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-lg px-2 py-2 text-left text-sm text-red-300 transition hover:bg-red-500/10"
+                        (click)="deleteUser(user.id)"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <article
+      class="ath-reveal mt-5 rounded-panel border border-athlium-primary/12 bg-athlium-surface/90 p-7 text-center shadow-soft"
+    >
+      <span class="material-symbols-outlined text-3xl text-athlium-muted">person_off</span>
+      <h3 class="mt-2 font-title text-2xl font-semibold">No hay usuarios</h3>
+      <p class="mt-1 text-sm text-athlium-muted">No hay usuarios asociados a esta organización.</p>
+    </article>
+  }
+
+  @if (!isLoading()) {
+    <div
+      class="mt-4 flex items-center justify-between gap-3 rounded-xl border border-athlium-primary/10 bg-athlium-surface/70 px-3 py-2 text-sm"
+    >
+      <p class="text-athlium-muted">{{ pageLabel() }}</p>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="rounded-lg border border-athlium-primary/12 px-3 py-1.5 text-athlium-text transition enabled:hover:bg-athlium-surface-2/45 disabled:cursor-not-allowed disabled:opacity-45"
+          [disabled]="!canGoPrev()"
+          (click)="previousPage()"
+        >
+          Anterior
+        </button>
+        <button
+          type="button"
+          class="rounded-lg border border-athlium-primary/12 px-3 py-1.5 text-athlium-text transition enabled:hover:bg-athlium-surface-2/45 disabled:cursor-not-allowed disabled:opacity-45"
+          [disabled]="!canGoNext()"
+          (click)="nextPage()"
+        >
+          Siguiente
+        </button>
+      </div>
+    </div>
+  }
+</section>
