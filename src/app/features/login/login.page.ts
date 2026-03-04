@@ -21,7 +21,8 @@ export class LoginPage {
   protected readonly roles = [
     { value: Role.CLIENT, label: 'Cliente' },
     { value: Role.PROFESSOR, label: 'Profesor' },
-    { value: Role.ORG_ADMIN, label: 'Admin' },
+    { value: Role.ORG_ADMIN, label: 'Admin sede' },
+    { value: Role.ORG_OWNER, label: 'Dueño de organizacion' },
     { value: Role.SUPERADMIN, label: 'Superadmin' },
   ];
 
@@ -72,7 +73,7 @@ export class LoginPage {
         this.form.controls.password.value,
         role,
       );
-      await this.router.navigateByUrl('/dashboard');
+      await this.router.navigateByUrl(this.getLandingPath(role));
     } catch (error) {
       this.errorMessage.set(this.resolveErrorMessage(error));
     } finally {
@@ -112,5 +113,16 @@ export class LoginPage {
     }
 
     return 'No se pudo completar la operación. Revisá credenciales y configuración de Firebase.';
+  }
+
+  private getLandingPath(role: Role): string {
+    switch (role) {
+      case Role.ORG_OWNER:
+        return '/org-owner/dashboard';
+      case Role.ORG_ADMIN:
+        return '/hq-admin/dashboard';
+      default:
+        return '/dashboard';
+    }
   }
 }

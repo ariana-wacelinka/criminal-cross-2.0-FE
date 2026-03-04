@@ -79,6 +79,26 @@ function unwrapApiResponse<T>(response: ApiResponse<T> | T): T {
   return response as T;
 }
 
+function mockUserOrganizationId(user: User): number {
+  return (user.id % 24) + 1;
+}
+
+function mockUserHeadquartersId(user: User): number {
+  return 101 + (user.id % 6);
+}
+
+function slicePage(items: User[], page: number, size: number): PageResult<User> {
+  const safePage = Math.max(0, page);
+  const safeSize = Math.max(1, size);
+  const start = safePage * safeSize;
+  return {
+    items: items.slice(start, start + safeSize),
+    total: items.length,
+    page: safePage,
+    size: safeSize,
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class UsersApi {
   private readonly http = inject(HttpClient);
@@ -86,11 +106,7 @@ export class UsersApi {
 
   getPage(page: number, size: number): Observable<PageResult<User>> {
     if (API_MOCK_MODE) {
-      const safePage = Math.max(0, page);
-      const safeSize = Math.max(1, size);
-      const start = safePage * safeSize;
-      const items = MOCK_USERS.slice(start, start + safeSize);
-      return of({ items, total: MOCK_USERS.length, page: safePage, size: safeSize });
+      return of(slicePage(MOCK_USERS, page, size));
     }
 
     return this.http
@@ -98,6 +114,46 @@ export class UsersApi {
         params: toHttpParams({ page, size }),
       })
       .pipe(map(unwrapApiResponse));
+  }
+
+  getUsersByOrg(organizationId: number, page: number, size: number): Observable<PageResult<User>> {
+    if (API_MOCK_MODE) {
+      const filtered = MOCK_USERS.filter((user) => mockUserOrganizationId(user) === organizationId);
+      return of(slicePage(filtered, page, size));
+    }
+
+    return this.http
+      .get<ApiResponse<PageResult<User>> | PageResult<User>>(
+        `${this.baseUrl}/users/by-organization/${organizationId}`,
+        {
+          params: toHttpParams({ page, size }),
+        },
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
+  getUsersByHq(headquartersId: number, page: number, size: number): Observable<PageResult<User>> {
+    if (API_MOCK_MODE) {
+      const filtered = MOCK_USERS.filter((user) => mockUserHeadquartersId(user) === headquartersId);
+      return of(slicePage(filtered, page, size));
+    }
+
+    return this.http
+      .get<ApiResponse<PageResult<User>> | PageResult<User>>(
+        `${this.baseUrl}/users/by-headquarters/${headquartersId}`,
+        {
+          params: toHttpParams({ page, size }),
+        },
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
+  getAllUsers(): Observable<User[]> {
+    return this.getAll();
+  }
+
+  getUserById(userId: number): Observable<User> {
+    return this.getById(userId);
   }
 
   getAll(): Observable<User[]> {
