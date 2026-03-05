@@ -99,53 +99,86 @@ function slicePage(items: User[], page: number, size: number): PageResult<User> 
   };
 }
 
+function applyUserSearch(items: User[], search?: string): User[] {
+  const normalized = search?.trim().toLowerCase();
+  if (!normalized) {
+    return items;
+  }
+
+  return items.filter((user) =>
+    `${user.name} ${user.lastName} ${user.email}`.toLowerCase().includes(normalized),
+  );
+}
+
+function toBackendPage(page: number): number {
+  return Math.max(1, page + 1);
+}
+
+function fromBackendPage<T>(pageResult: PageResult<T>): PageResult<T> {
+  const backendPage = Number.isFinite(pageResult.page) ? pageResult.page : 1;
+  return {
+    ...pageResult,
+    page: Math.max(0, backendPage - 1),
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class UsersApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
 
-  getPage(page: number, size: number): Observable<PageResult<User>> {
+  getPage(page: number, size: number, search?: string): Observable<PageResult<User>> {
     if (API_MOCK_MODE) {
-      return of(slicePage(MOCK_USERS, page, size));
+      return of(slicePage(applyUserSearch(MOCK_USERS, search), page, size));
     }
 
     return this.http
       .get<ApiResponse<PageResult<User>> | PageResult<User>>(`${this.baseUrl}/users`, {
-        params: toHttpParams({ page, size }),
+        params: toHttpParams({ page: toBackendPage(page), size, search }),
       })
-      .pipe(map(unwrapApiResponse));
+      .pipe(map(unwrapApiResponse), map(fromBackendPage));
   }
 
-  getUsersByOrg(organizationId: number, page: number, size: number): Observable<PageResult<User>> {
+  getUsersByOrg(
+    organizationId: number,
+    page: number,
+    size: number,
+    search?: string,
+  ): Observable<PageResult<User>> {
     if (API_MOCK_MODE) {
-      const filtered = MOCK_USERS.filter((user) => mockUserOrganizationId(user) === organizationId);
+      const filtered = applyUserSearch(
+        MOCK_USERS.filter((user) => mockUserOrganizationId(user) === organizationId),
+        search,
+      );
       return of(slicePage(filtered, page, size));
     }
 
     return this.http
-      .get<ApiResponse<PageResult<User>> | PageResult<User>>(
-        `${this.baseUrl}/users/by-organization/${organizationId}`,
-        {
-          params: toHttpParams({ page, size }),
-        },
-      )
-      .pipe(map(unwrapApiResponse));
+      .get<ApiResponse<PageResult<User>> | PageResult<User>>(`${this.baseUrl}/users`, {
+        params: toHttpParams({ organizationId, page: toBackendPage(page), size, search }),
+      })
+      .pipe(map(unwrapApiResponse), map(fromBackendPage));
   }
 
-  getUsersByHq(headquartersId: number, page: number, size: number): Observable<PageResult<User>> {
+  getUsersByHq(
+    headquartersId: number,
+    page: number,
+    size: number,
+    search?: string,
+  ): Observable<PageResult<User>> {
     if (API_MOCK_MODE) {
-      const filtered = MOCK_USERS.filter((user) => mockUserHeadquartersId(user) === headquartersId);
+      const filtered = applyUserSearch(
+        MOCK_USERS.filter((user) => mockUserHeadquartersId(user) === headquartersId),
+        search,
+      );
       return of(slicePage(filtered, page, size));
     }
 
     return this.http
-      .get<ApiResponse<PageResult<User>> | PageResult<User>>(
-        `${this.baseUrl}/users/by-headquarters/${headquartersId}`,
-        {
-          params: toHttpParams({ page, size }),
-        },
-      )
-      .pipe(map(unwrapApiResponse));
+      .get<ApiResponse<PageResult<User>> | PageResult<User>>(`${this.baseUrl}/users`, {
+        params: toHttpParams({ headquartersId, page: toBackendPage(page), size, search }),
+      })
+      .pipe(map(unwrapApiResponse), map(fromBackendPage));
   }
 
   getAllUsers(): Observable<User[]> {
@@ -189,8 +222,9 @@ export class UsersApi {
 
   create(body: CreateUserRequest): Observable<User> {
     if (API_MOCK_MODE) {
+      const createdId = Date.now();
       const created = {
-        id: Date.now(),
+        id: createdId,
         firebaseUid: buildMockFirebaseUid(body.email),
         email: body.email,
         name: body.name,
