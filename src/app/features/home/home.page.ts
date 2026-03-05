@@ -57,6 +57,8 @@ export class HomePage {
       case Role.ORG_ADMIN:
         return [
           { label: 'Inicio', path: '/hq-admin/dashboard' },
+          { label: 'Usuarios', path: '/hq-admin/users' },
+          { label: 'Pagos', path: '/hq-admin/payments' },
           { label: 'Actividades', path: '/headquarters/101/activities' },
           { label: 'Horarios', path: '/hq-admin/schedules' },
           { label: 'Agenda', path: '/hq-admin/agenda' },
@@ -101,7 +103,7 @@ export class HomePage {
       case Role.SUPERADMIN:
         return 'Superadmin';
       case Role.ORG_OWNER:
-        return 'Dueño de organizacion';
+        return 'Dueño de organización';
       case Role.ORG_ADMIN:
         return 'Admin sede';
       case Role.PROFESSOR:
