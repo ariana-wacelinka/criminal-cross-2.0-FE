@@ -171,6 +171,14 @@ export const routes: Routes = [
         loadComponent: () => import('./features/operations-shared').then((m) => m.AgendaOpsPage),
         data: { scope: 'hq' },
       },
+      {
+        path: 'hq-admin/users',
+        loadComponent: () => import('./features/hq-admin').then((m) => m.HqAdminUsersPage),
+      },
+      {
+        path: 'hq-admin/payments',
+        loadComponent: () => import('./features/hq-admin').then((m) => m.HqAdminPaymentsPage),
+      },
     ],
   },
   {

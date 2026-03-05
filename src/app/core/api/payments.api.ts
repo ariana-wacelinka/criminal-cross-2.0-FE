@@ -19,7 +19,7 @@ export interface PaymentListItem {
   amount: string;
   paymentMethod: PaymentMethod | string;
   paidAt: string;
-  userId: number;
+  clientId: number;
   userName: string;
   userLastName: string;
   organizationId: number;
@@ -28,7 +28,7 @@ export interface PaymentListItem {
 
 const MOCK_PAYMENT_LIST: PaymentListItem[] = Array.from({ length: 26 }, (_, index) => {
   const id = index + 1;
-  const userId = 10 + (index % 9);
+  const clientId = 10 + (index % 9);
   const userName = [
     'Ariana',
     'Juan',
@@ -61,7 +61,7 @@ const MOCK_PAYMENT_LIST: PaymentListItem[] = Array.from({ length: 26 }, (_, inde
       PaymentMethod.OTHER,
     ][index % 4],
     paidAt: new Date(Date.UTC(2026, 2, 1 + index)).toISOString().slice(0, 10),
-    userId,
+    clientId,
     userName,
     userLastName,
     organizationId: 1,
@@ -72,6 +72,9 @@ const MOCK_PAYMENT_LIST: PaymentListItem[] = Array.from({ length: 26 }, (_, inde
 export interface CreatePaymentRequest {
   amount: string;
   paymentMethod: PaymentMethod | string;
+  clientId?: number;
+  headquartersId?: number;
+  organizationId?: number;
 }
 
 function unwrapApiResponse<T>(response: ApiResponse<T> | T): T {
@@ -109,6 +112,18 @@ function slicePaymentsPage(
   };
 }
 
+function toBackendPage(page: number): number {
+  return Math.max(1, page + 1);
+}
+
+function fromBackendPage<T>(pageResult: PageResult<T>): PageResult<T> {
+  const backendPage = Number.isFinite(pageResult.page) ? pageResult.page : 1;
+  return {
+    ...pageResult,
+    page: Math.max(0, backendPage - 1),
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class PaymentsApi {
   private readonly http = inject(HttpClient);
@@ -131,12 +146,12 @@ export class PaymentsApi {
 
     return this.http
       .get<ApiResponse<PageResult<PaymentListItem>> | PageResult<PaymentListItem>>(
-        `${this.baseUrl}/payments/by-headquarters/${headquartersId}`,
+        `${this.baseUrl}/payments`,
         {
-          params: toHttpParams({ page, size }),
+          params: toHttpParams({ headquartersId, page: toBackendPage(page), size }),
         },
       )
-      .pipe(map(unwrapApiResponse));
+      .pipe(map(unwrapApiResponse), map(fromBackendPage));
   }
 
   getAllByOrg(
@@ -156,12 +171,12 @@ export class PaymentsApi {
 
     return this.http
       .get<ApiResponse<PageResult<PaymentListItem>> | PageResult<PaymentListItem>>(
-        `${this.baseUrl}/payments/by-organization/${organizationId}`,
+        `${this.baseUrl}/payments`,
         {
-          params: toHttpParams({ page, size }),
+          params: toHttpParams({ organizationId, page: toBackendPage(page), size }),
         },
       )
-      .pipe(map(unwrapApiResponse));
+      .pipe(map(unwrapApiResponse), map(fromBackendPage));
   }
 
   getPage(page: number, size: number): Observable<PageResult<Payment>> {
@@ -201,11 +216,11 @@ export class PaymentsApi {
         amount: body.amount,
         paymentMethod: body.paymentMethod,
         paidAt: created.paidAt,
-        userId: 0,
+        clientId: body.clientId ?? 0,
         userName: 'Usuario',
         userLastName: 'Sin asignar',
-        organizationId: 1,
-        headquartersId: 101,
+        organizationId: body.organizationId ?? 1,
+        headquartersId: body.headquartersId ?? 101,
       });
       return of(created);
     }

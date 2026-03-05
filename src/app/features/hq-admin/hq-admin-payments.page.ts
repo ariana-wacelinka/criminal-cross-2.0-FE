@@ -216,6 +216,9 @@ export class HqAdminPaymentsPage {
     const paymentPayload: CreatePaymentRequest = {
       amount: amount.toFixed(2),
       paymentMethod,
+      clientId: userId,
+      headquartersId: this.headquartersId,
+      organizationId: 1,
     };
 
     try {
