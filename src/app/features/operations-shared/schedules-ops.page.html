@@ -5,7 +5,7 @@
     <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Operaciones</p>
     <h1 class="mt-2 font-title text-3xl font-semibold">{{ title }}</h1>
     <p class="mt-1 text-sm text-athlium-muted">
-      Gestiona horarios por sede. La creacion y edicion se realiza en un panel aparte.
+      Gestiona horarios por sede. La creación y edición se realiza en un panel aparte.
     </p>
   </header>
 
@@ -63,21 +63,55 @@
       </div>
 
       <div class="mt-4 grid gap-3 md:grid-cols-2">
-        <label class="grid gap-2 text-sm">
+        <label class="grid gap-2 text-sm md:col-span-2">
           <span class="text-athlium-muted">Actividad</span>
-          <select
-            class="ath-select appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
-            formControlName="activityId"
-          >
-            <option [value]="0" disabled>Seleccionar actividad</option>
-            @for (activity of activitiesPage()?.content ?? []; track activity.id) {
-              <option [value]="activity.id">{{ activity.name }}</option>
+          <div class="relative w-full">
+            <input
+              type="text"
+              [value]="activityQuery()"
+              (input)="setActivityQuery($any($event.target).value)"
+              (focus)="openActivitySelector()"
+              (blur)="closeActivitySelector()"
+              placeholder="Buscar actividad"
+              class="w-full appearance-none rounded-xl border bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+              [class.border-red-400/45]="
+                form.controls.activityId.invalid && form.controls.activityId.touched
+              "
+              [class.border-athlium-primary/14]="
+                !(form.controls.activityId.invalid && form.controls.activityId.touched)
+              "
+            />
+
+            @if (showActivityOptions()) {
+              <div
+                class="absolute z-40 mt-2 max-h-52 w-full overflow-auto rounded-xl border border-athlium-primary/20 bg-athlium-surface p-2 shadow-[0_14px_26px_rgba(3,9,31,0.62)]"
+                style="background-color: rgb(var(--ath-surface-rgb) / 0.995)"
+              >
+                @if (filteredActivities().length) {
+                  <div class="grid gap-1">
+                    @for (activity of filteredActivities(); track activity.id) {
+                      <button
+                        type="button"
+                        class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
+                        (click)="selectActivity(activity.id)"
+                      >
+                        {{ activity.name }}
+                      </button>
+                    }
+                  </div>
+                } @else {
+                  <p class="px-2 py-2 text-sm text-athlium-muted">Sin actividades para mostrar.</p>
+                }
+              </div>
             }
-          </select>
+          </div>
+          @if (form.controls.activityId.invalid && form.controls.activityId.touched) {
+            <p class="text-xs text-red-300">Selecciona una actividad válida.</p>
+          }
         </label>
 
         <div class="grid gap-2 text-sm md:col-span-2">
-          <span class="text-athlium-muted">Dias</span>
+          <span class="text-athlium-muted">Días</span>
           <div class="flex flex-wrap gap-2">
             @for (day of dayOptions; track day.value) {
               <button
@@ -95,42 +129,104 @@
               </button>
             }
           </div>
+          @if (showWeekDaysError()) {
+            <p class="text-xs text-red-300">Selecciona al menos un día.</p>
+          }
         </div>
 
         <label class="grid gap-2 text-sm">
           <span class="text-athlium-muted">Hora inicio</span>
           <input
-            class="appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            class="appearance-none rounded-xl border bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            [class.border-red-400/45]="
+              form.controls.startTime.invalid && form.controls.startTime.touched
+            "
+            [class.border-athlium-primary/14]="
+              !(form.controls.startTime.invalid && form.controls.startTime.touched)
+            "
             formControlName="startTime"
             type="time"
           />
+          @if (form.controls.startTime.invalid && form.controls.startTime.touched) {
+            <p class="text-xs text-red-300">Ingresa una hora de inicio.</p>
+          }
         </label>
 
         <label class="grid gap-2 text-sm">
           <span class="text-athlium-muted">Duracion (min)</span>
           <input
-            class="appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            class="appearance-none rounded-xl border bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            [class.border-red-400/45]="
+              form.controls.durationMinutes.invalid && form.controls.durationMinutes.touched
+            "
+            [class.border-athlium-primary/14]="
+              !(form.controls.durationMinutes.invalid && form.controls.durationMinutes.touched)
+            "
             formControlName="durationMinutes"
             type="number"
           />
+          @if (
+            form.controls.durationMinutes.hasError('required') &&
+            form.controls.durationMinutes.touched
+          ) {
+            <p class="text-xs text-red-300">Ingresa una duración.</p>
+          }
+          @if (
+            form.controls.durationMinutes.hasError('min') && form.controls.durationMinutes.touched
+          ) {
+            <p class="text-xs text-red-300">La duración mínima es de 15 minutos.</p>
+          }
         </label>
 
         <label class="grid gap-2 text-sm">
           <span class="text-athlium-muted">Desde</span>
           <input
-            class="appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            class="appearance-none rounded-xl border bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            [class.border-red-400/45]="
+              (form.controls.activeFrom.invalid && form.controls.activeFrom.touched) ||
+              showDateRangeError()
+            "
+            [class.border-athlium-primary/14]="
+              !(
+                (form.controls.activeFrom.invalid && form.controls.activeFrom.touched) ||
+                showDateRangeError()
+              )
+            "
             formControlName="activeFrom"
             type="date"
           />
+          @if (form.controls.activeFrom.hasError('required') && form.controls.activeFrom.touched) {
+            <p class="text-xs text-red-300">Selecciona la fecha de inicio.</p>
+          }
         </label>
 
         <label class="grid gap-2 text-sm">
           <span class="text-athlium-muted">Hasta</span>
           <input
-            class="appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            class="appearance-none rounded-xl border bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            [class.border-red-400/45]="
+              (form.controls.activeUntil.invalid && form.controls.activeUntil.touched) ||
+              showDateRangeError()
+            "
+            [class.border-athlium-primary/14]="
+              !(
+                (form.controls.activeUntil.invalid && form.controls.activeUntil.touched) ||
+                showDateRangeError()
+              )
+            "
             formControlName="activeUntil"
             type="date"
           />
+          @if (
+            form.controls.activeUntil.hasError('required') && form.controls.activeUntil.touched
+          ) {
+            <p class="text-xs text-red-300">Selecciona la fecha de fin.</p>
+          }
+          @if (showDateRangeError()) {
+            <p class="text-xs text-red-300">
+              La fecha de fin debe ser igual o posterior a la fecha de inicio.
+            </p>
+          }
         </label>
       </div>
 

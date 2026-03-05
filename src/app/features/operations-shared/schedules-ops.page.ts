@@ -44,6 +44,9 @@ export class SchedulesOpsPage {
   );
   protected readonly showForm = signal(false);
   protected readonly editingScheduleId = signal<number | null>(null);
+  protected readonly activityQuery = signal('');
+  protected readonly showActivityOptions = signal(false);
+  protected readonly weekDaysTouched = signal(false);
   protected readonly dayOptions: ReadonlyArray<{ value: WeekDay; label: string }> = [
     { value: WeekDay.MONDAY, label: 'Lunes' },
     { value: WeekDay.TUESDAY, label: 'Martes' },
@@ -77,13 +80,19 @@ export class SchedulesOpsPage {
     { initialValue: null },
   );
 
+  private readonly activitiesRequest = computed(() => ({
+    headquartersId: this.selectedHeadquartersId() || this.fixedHeadquartersId,
+    name: this.activityQuery().trim(),
+  }));
+
   protected readonly activitiesPage = toSignal(
-    toObservable(this.selectedHeadquartersId).pipe(
-      switchMap((headquartersId) =>
+    toObservable(this.activitiesRequest).pipe(
+      switchMap(({ headquartersId, name }) =>
         this.activitiesApi.getAll({
-          hqId: headquartersId || this.fixedHeadquartersId,
+          hqId: headquartersId,
+          name: name || undefined,
           page: 0,
-          size: 100,
+          size: 20,
         }),
       ),
     ),
@@ -91,6 +100,8 @@ export class SchedulesOpsPage {
   );
 
   protected readonly isLoading = computed(() => !this.schedules() || !this.activitiesPage());
+  protected readonly activities = computed(() => this.activitiesPage()?.content ?? []);
+  protected readonly filteredActivities = computed(() => this.activities());
   protected readonly hasItems = computed(() => (this.schedules()?.length ?? 0) > 0);
 
   protected readonly form = new FormGroup({
@@ -102,8 +113,20 @@ export class SchedulesOpsPage {
     durationMinutes: new FormControl<number | null>(null, {
       validators: [Validators.required, Validators.min(15)],
     }),
-    activeFrom: new FormControl('', { nonNullable: true }),
-    activeUntil: new FormControl('', { nonNullable: true }),
+    activeFrom: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    activeUntil: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+  });
+
+  protected readonly showWeekDaysError = computed(
+    () => this.weekDaysTouched() && this.selectedWeekDays().length === 0,
+  );
+  protected readonly showDateRangeError = computed(() => {
+    const from = this.form.controls.activeFrom.value;
+    const until = this.form.controls.activeUntil.value;
+    if (!from || !until) {
+      return false;
+    }
+    return from > until;
   });
 
   constructor() {
@@ -132,6 +155,7 @@ export class SchedulesOpsPage {
     this.editingScheduleId.set(scheduleId);
     this.showForm.set(true);
     this.selectedWeekDays.set((schedule.weekDays ?? []) as WeekDay[]);
+    this.weekDaysTouched.set(false);
     this.form.patchValue({
       activityId: schedule.activityId,
       startTime: schedule.startTime,
@@ -139,6 +163,8 @@ export class SchedulesOpsPage {
       activeFrom: schedule.activeFrom ?? '',
       activeUntil: schedule.activeUntil ?? '',
     });
+    this.activityQuery.set(this.activityName(schedule.activityId));
+    this.showActivityOptions.set(false);
   }
 
   protected resetForm(): void {
@@ -150,6 +176,9 @@ export class SchedulesOpsPage {
       activeFrom: '',
       activeUntil: '',
     });
+    this.activityQuery.set('');
+    this.showActivityOptions.set(false);
+    this.weekDaysTouched.set(false);
   }
 
   protected openCreateForm(): void {
@@ -164,6 +193,27 @@ export class SchedulesOpsPage {
     this.resetForm();
   }
 
+  protected setActivityQuery(value: string): void {
+    this.activityQuery.set(value);
+    this.showActivityOptions.set(true);
+    this.form.patchValue({ activityId: 0 });
+  }
+
+  protected selectActivity(activityId: number): void {
+    const activity = this.activities().find((item) => item.id === activityId);
+    this.form.patchValue({ activityId });
+    this.activityQuery.set(activity?.name ?? '');
+    this.showActivityOptions.set(false);
+  }
+
+  protected openActivitySelector(): void {
+    this.showActivityOptions.set(true);
+  }
+
+  protected closeActivitySelector(): void {
+    setTimeout(() => this.showActivityOptions.set(false), 120);
+  }
+
   protected async saveSchedule(): Promise<void> {
     if (this.form.invalid || !this.selectedHeadquartersId()) {
       this.form.markAllAsTouched();
@@ -171,7 +221,13 @@ export class SchedulesOpsPage {
     }
 
     if (!this.selectedWeekDays().length) {
-      this.toast.error('Selecciona al menos un dia.');
+      this.weekDaysTouched.set(true);
+      this.toast.error('Selecciona al menos un día.');
+      return;
+    }
+
+    if (this.showDateRangeError()) {
+      this.toast.error('La fecha de fin debe ser igual o posterior a la de inicio.');
       return;
     }
 
@@ -230,6 +286,7 @@ export class SchedulesOpsPage {
   }
 
   protected toggleDay(day: WeekDay): void {
+    this.weekDaysTouched.set(true);
     this.selectedWeekDays.update((days) =>
       days.includes(day) ? days.filter((item) => item !== day) : [...days, day],
     );
