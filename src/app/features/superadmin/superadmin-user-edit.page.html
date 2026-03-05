@@ -21,6 +21,9 @@
           placeholder="Nombre"
           type="text"
         />
+        @if (form.controls.name.hasError('required') && form.controls.name.touched) {
+          <p class="text-xs text-red-300">Ingresa el nombre.</p>
+        }
       </label>
 
       <label class="grid gap-2 text-sm">
@@ -31,6 +34,9 @@
           placeholder="Apellido"
           type="text"
         />
+        @if (form.controls.lastName.hasError('required') && form.controls.lastName.touched) {
+          <p class="text-xs text-red-300">Ingresa el apellido.</p>
+        }
       </label>
 
       <label class="grid gap-2 text-sm">
@@ -41,6 +47,12 @@
           placeholder="Email"
           type="email"
         />
+        @if (form.controls.email.hasError('required') && form.controls.email.touched) {
+          <p class="text-xs text-red-300">Ingresa el email.</p>
+        }
+        @if (form.controls.email.hasError('email') && form.controls.email.touched) {
+          <p class="text-xs text-red-300">Ingresa un email válido.</p>
+        }
       </label>
     </div>
 

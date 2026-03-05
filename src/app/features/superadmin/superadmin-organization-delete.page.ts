@@ -53,7 +53,7 @@ export class SuperadminOrganizationDeletePage {
 
   protected async confirmDeleteWithCredentials(): Promise<void> {
     if (!this.credentialEmail().trim() || !this.credentialPassword().trim()) {
-      this.deleteError.set('Completa email y contrasena para confirmar.');
+      this.deleteError.set('Completa email y contraseña para confirmar.');
       return;
     }
 
@@ -62,23 +62,23 @@ export class SuperadminOrganizationDeletePage {
       sessionEmail &&
       sessionEmail.toLowerCase() !== this.credentialEmail().trim().toLowerCase()
     ) {
-      this.deleteError.set('El email no coincide con la sesion activa.');
+      this.deleteError.set('El email no coincide con la sesión activa.');
       return;
     }
 
     if (this.credentialPassword().trim().length < 6) {
-      this.deleteError.set('La contrasena debe tener al menos 6 caracteres.');
+      this.deleteError.set('La contraseña debe tener al menos 6 caracteres.');
       return;
     }
 
     try {
       await firstValueFrom(this.organizationsApi.remove(this.organizationId));
       this.closeConfirmModal();
-      this.toast.success('Organizacion eliminada.');
+      this.toast.success('Organización eliminada.');
       await this.router.navigateByUrl('/organizations');
     } catch {
-      this.deleteError.set('No se pudo eliminar la organizacion. Intenta nuevamente.');
-      this.toast.error('No se pudo eliminar la organizacion.');
+      this.deleteError.set('No se pudo eliminar la organización. Intenta nuevamente.');
+      this.toast.error('No se pudo eliminar la organización.');
     }
   }
 

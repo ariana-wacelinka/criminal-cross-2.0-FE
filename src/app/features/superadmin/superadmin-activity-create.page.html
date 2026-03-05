@@ -16,21 +16,39 @@
       <label class="grid gap-2 text-sm">
         <span class="text-athlium-muted">Nombre</span>
         <input
-          class="appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+          class="appearance-none rounded-xl border bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+          [class.border-red-400/45]="
+            form.controls.name.hasError('required') && form.controls.name.touched
+          "
+          [class.border-athlium-primary/14]="
+            !(form.controls.name.hasError('required') && form.controls.name.touched)
+          "
           formControlName="name"
           placeholder="Nombre de actividad"
           type="text"
         />
+        @if (form.controls.name.hasError('required') && form.controls.name.touched) {
+          <p class="text-xs text-red-300">Ingresa el nombre de la actividad.</p>
+        }
       </label>
 
       <label class="grid gap-2 text-sm">
-        <span class="text-athlium-muted">Descripcion</span>
+        <span class="text-athlium-muted">Descripción</span>
         <textarea
-          class="appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+          class="appearance-none rounded-xl border bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+          [class.border-red-400/45]="
+            form.controls.description.hasError('required') && form.controls.description.touched
+          "
+          [class.border-athlium-primary/14]="
+            !(form.controls.description.hasError('required') && form.controls.description.touched)
+          "
           formControlName="description"
-          placeholder="Descripcion corta"
+          placeholder="Descripción corta"
           rows="3"
         ></textarea>
+        @if (form.controls.description.hasError('required') && form.controls.description.touched) {
+          <p class="text-xs text-red-300">Ingresa una descripción de la actividad.</p>
+        }
       </label>
     </div>
 

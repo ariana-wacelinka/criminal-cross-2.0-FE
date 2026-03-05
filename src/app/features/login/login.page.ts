@@ -22,13 +22,13 @@ export class LoginPage {
     { value: Role.CLIENT, label: 'Cliente' },
     { value: Role.PROFESSOR, label: 'Profesor' },
     { value: Role.ORG_ADMIN, label: 'Admin sede' },
-    { value: Role.ORG_OWNER, label: 'Dueño de organizacion' },
+    { value: Role.ORG_OWNER, label: 'Dueño de organización' },
     { value: Role.SUPERADMIN, label: 'Superadmin' },
   ];
 
   protected readonly form = new FormGroup({
-    name: new FormControl('', { nonNullable: true }),
-    lastName: new FormControl('', { nonNullable: true }),
+    name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    lastName: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     email: new FormControl('', {
       nonNullable: true,
       validators: [Validators.required, Validators.email],
@@ -82,7 +82,12 @@ export class LoginPage {
   }
 
   protected async register(): Promise<void> {
-    if (this.form.controls.email.invalid || this.form.controls.password.invalid) {
+    if (
+      this.form.controls.name.invalid ||
+      this.form.controls.lastName.invalid ||
+      this.form.controls.email.invalid ||
+      this.form.controls.password.invalid
+    ) {
       this.form.markAllAsTouched();
       return;
     }
@@ -99,7 +104,7 @@ export class LoginPage {
         this.form.controls.role.value,
       );
       this.mode.set('login');
-      this.errorMessage.set('Cuenta demo creada. Ahora podes ingresar.');
+      this.errorMessage.set('Cuenta demo creada. Ahora podés ingresar.');
     } catch (error) {
       this.errorMessage.set(this.resolveErrorMessage(error));
     } finally {

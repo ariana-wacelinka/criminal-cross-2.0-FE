@@ -19,7 +19,7 @@ export class OrgOwnerPage {
   private readonly organizationId = 1;
 
   protected readonly organization = toSignal(this.organizationsApi.getById(this.organizationId), {
-    initialValue: { id: this.organizationId, name: 'Organizacion' },
+    initialValue: { id: this.organizationId, name: 'Organización' },
   });
   protected readonly headquartersPage = toSignal(
     this.headquartersApi.getPage(0, 6, this.organizationId),

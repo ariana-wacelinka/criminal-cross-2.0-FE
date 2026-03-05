@@ -3,11 +3,11 @@
     class="ath-reveal rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
   >
     <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">
-      Admin de organizacion
+      Admin de organización
     </p>
     <h1 class="mt-2 font-title text-3xl font-semibold">{{ organization().name }}</h1>
     <p class="mt-1 text-sm text-athlium-muted">
-      Vista central para gestionar sedes y equipo de la organizacion.
+      Vista central para gestionar sedes y equipo de la organización.
     </p>
   </header>
 
@@ -42,7 +42,7 @@
         class="ath-reveal rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 xl:col-span-3"
         style="animation-delay: 90ms"
       >
-        <h2 class="font-title text-xl font-semibold">Sedes de la organizacion</h2>
+        <h2 class="font-title text-xl font-semibold">Sedes de la organización</h2>
         <ul class="mt-4 grid gap-2">
           @for (hq of headquarters(); track hq.id) {
             <li

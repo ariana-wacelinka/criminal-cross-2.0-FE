@@ -143,7 +143,7 @@ export class SuperadminHeadquartersPage {
     }
 
     if (!this.credentialEmail().trim() || !this.credentialPassword().trim()) {
-      this.deleteError.set('Completa email y contrasena para confirmar.');
+      this.deleteError.set('Completa email y contraseña para confirmar.');
       return;
     }
 
@@ -152,12 +152,12 @@ export class SuperadminHeadquartersPage {
       sessionEmail &&
       sessionEmail.toLowerCase() !== this.credentialEmail().trim().toLowerCase()
     ) {
-      this.deleteError.set('El email no coincide con la sesion activa.');
+      this.deleteError.set('El email no coincide con la sesión activa.');
       return;
     }
 
     if (this.credentialPassword().trim().length < 6) {
-      this.deleteError.set('La contrasena debe tener al menos 6 caracteres.');
+      this.deleteError.set('La contraseña debe tener al menos 6 caracteres.');
       return;
     }
 

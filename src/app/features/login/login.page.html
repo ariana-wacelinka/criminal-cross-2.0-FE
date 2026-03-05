@@ -40,7 +40,7 @@
     <p class="mt-1 text-sm text-athlium-muted">
       {{
         mode() === 'login'
-          ? 'Ingresa con email y contrasena'
+          ? 'Ingresa con email y contraseña'
           : 'Registro demo para probar el flujo de roles'
       }}
     </p>
@@ -73,33 +73,83 @@
 
       @if (mode() === 'register') {
         <div class="grid gap-3 sm:grid-cols-2">
-          <input
-            class="appearance-none rounded-xl border border-athlium-primary/15 bg-athlium-primary-soft/65 px-3 py-2 text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
-            type="text"
-            placeholder="Nombre"
-            formControlName="name"
-          />
-          <input
-            class="appearance-none rounded-xl border border-athlium-primary/15 bg-athlium-primary-soft/65 px-3 py-2 text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
-            type="text"
-            placeholder="Apellido"
-            formControlName="lastName"
-          />
+          <label class="grid min-w-0 gap-1.5">
+            <input
+              class="w-full appearance-none rounded-xl border bg-athlium-primary-soft/65 px-3 py-2 text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+              [class.border-red-400/45]="
+                form.controls.name.hasError('required') && form.controls.name.touched
+              "
+              [class.border-athlium-primary/15]="
+                !(form.controls.name.hasError('required') && form.controls.name.touched)
+              "
+              type="text"
+              placeholder="Nombre"
+              formControlName="name"
+            />
+            @if (form.controls.name.hasError('required') && form.controls.name.touched) {
+              <p class="text-xs text-red-300">Ingresa tu nombre.</p>
+            }
+          </label>
+
+          <label class="grid min-w-0 gap-1.5">
+            <input
+              class="w-full appearance-none rounded-xl border bg-athlium-primary-soft/65 px-3 py-2 text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+              [class.border-red-400/45]="
+                form.controls.lastName.hasError('required') && form.controls.lastName.touched
+              "
+              [class.border-athlium-primary/15]="
+                !(form.controls.lastName.hasError('required') && form.controls.lastName.touched)
+              "
+              type="text"
+              placeholder="Apellido"
+              formControlName="lastName"
+            />
+            @if (form.controls.lastName.hasError('required') && form.controls.lastName.touched) {
+              <p class="text-xs text-red-300">Ingresa tu apellido.</p>
+            }
+          </label>
         </div>
       }
 
-      <input
-        class="appearance-none rounded-xl border border-athlium-primary/15 bg-athlium-primary-soft/65 px-3 py-2 text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
-        type="email"
-        placeholder="Email"
-        formControlName="email"
-      />
-      <input
-        class="appearance-none rounded-xl border border-athlium-primary/15 bg-athlium-primary-soft/65 px-3 py-2 text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
-        type="password"
-        placeholder="Contrasena"
-        formControlName="password"
-      />
+      <label class="grid min-w-0 gap-1.5">
+        <input
+          class="w-full appearance-none rounded-xl border bg-athlium-primary-soft/65 px-3 py-2 text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+          [class.border-red-400/45]="form.controls.email.invalid && form.controls.email.touched"
+          [class.border-athlium-primary/15]="
+            !(form.controls.email.invalid && form.controls.email.touched)
+          "
+          type="email"
+          placeholder="Email"
+          formControlName="email"
+        />
+        @if (form.controls.email.hasError('required') && form.controls.email.touched) {
+          <p class="text-xs text-red-300">Ingresa tu email.</p>
+        }
+        @if (form.controls.email.hasError('email') && form.controls.email.touched) {
+          <p class="text-xs text-red-300">Ingresa un email válido.</p>
+        }
+      </label>
+
+      <label class="grid min-w-0 gap-1.5">
+        <input
+          class="w-full appearance-none rounded-xl border bg-athlium-primary-soft/65 px-3 py-2 text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+          [class.border-red-400/45]="
+            form.controls.password.invalid && form.controls.password.touched
+          "
+          [class.border-athlium-primary/15]="
+            !(form.controls.password.invalid && form.controls.password.touched)
+          "
+          type="password"
+          placeholder="Contraseña"
+          formControlName="password"
+        />
+        @if (form.controls.password.hasError('required') && form.controls.password.touched) {
+          <p class="text-xs text-red-300">Ingresa tu contraseña.</p>
+        }
+        @if (form.controls.password.hasError('minlength') && form.controls.password.touched) {
+          <p class="text-xs text-red-300">La contraseña debe tener al menos 6 caracteres.</p>
+        }
+      </label>
 
       <button
         type="submit"
