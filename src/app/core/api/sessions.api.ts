@@ -1,7 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { map, Observable, of } from 'rxjs';
 import {
+  ApiResponse,
   SessionInstance,
   SessionPageResponse,
   SessionSource,
@@ -9,9 +10,8 @@ import {
   WaitlistStrategy,
 } from '../domain/models';
 import { API_BASE_URL } from '../http/api-base-url.token';
+import { API_MOCK_MODE } from '../http';
 import { toHttpParams } from '../http/http-params.util';
-
-const API_MOCK_MODE = true;
 
 const MOCK_SESSIONS: SessionInstance[] = Array.from({ length: 120 }, (_, index) => {
   const headquartersId = 101 + (index % 6);
@@ -44,13 +44,21 @@ export interface GetSessionsQuery {
   sort?: string;
 }
 
+function unwrapApiResponse<T>(response: ApiResponse<T> | T): T {
+  if (response && typeof response === 'object' && 'data' in response) {
+    return (response as ApiResponse<T>).data;
+  }
+  return response as T;
+}
+
 @Injectable({ providedIn: 'root' })
 export class SessionsApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
+  private readonly apiMockMode = inject(API_MOCK_MODE);
 
   getAll(query: GetSessionsQuery): Observable<SessionPageResponse> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const page = Math.max(0, query.page ?? 0);
       const limit = Math.max(1, query.limit ?? 10);
       const filtered = MOCK_SESSIONS.filter((item) => {
@@ -84,13 +92,15 @@ export class SessionsApi {
       });
     }
 
-    return this.http.get<SessionPageResponse>(`${this.baseUrl}/sessions`, {
-      params: toHttpParams(query),
-    });
+    return this.http
+      .get<ApiResponse<SessionPageResponse> | SessionPageResponse>(`${this.baseUrl}/sessions`, {
+        params: toHttpParams(query),
+      })
+      .pipe(map(unwrapApiResponse));
   }
 
   getById(sessionId: number): Observable<SessionInstance> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const session = MOCK_SESSIONS.find((item) => item.id === sessionId);
       return of(
         session ?? {
@@ -112,6 +122,8 @@ export class SessionsApi {
       );
     }
 
-    return this.http.get<SessionInstance>(`${this.baseUrl}/sessions/${sessionId}`);
+    return this.http
+      .get<ApiResponse<SessionInstance> | SessionInstance>(`${this.baseUrl}/sessions/${sessionId}`)
+      .pipe(map(unwrapApiResponse));
   }
 }

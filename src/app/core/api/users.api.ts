@@ -3,9 +3,8 @@ import { inject, Injectable } from '@angular/core';
 import { map, Observable, of } from 'rxjs';
 import { ApiResponse, PageResult, Role, User } from '../domain/models';
 import { API_BASE_URL } from '../http/api-base-url.token';
+import { API_MOCK_MODE } from '../http';
 import { toHttpParams } from '../http/http-params.util';
-
-const API_MOCK_MODE = true;
 
 const MOCK_USERS: User[] = Array.from({ length: 64 }, (_, index) => {
   const id = index + 10;
@@ -126,9 +125,10 @@ function fromBackendPage<T>(pageResult: PageResult<T>): PageResult<T> {
 export class UsersApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
+  private readonly apiMockMode = inject(API_MOCK_MODE);
 
   getPage(page: number, size: number, search?: string): Observable<PageResult<User>> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       return of(slicePage(applyUserSearch(MOCK_USERS, search), page, size));
     }
 
@@ -145,7 +145,7 @@ export class UsersApi {
     size: number,
     search?: string,
   ): Observable<PageResult<User>> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const filtered = applyUserSearch(
         MOCK_USERS.filter((user) => mockUserOrganizationId(user) === organizationId),
         search,
@@ -166,7 +166,7 @@ export class UsersApi {
     size: number,
     search?: string,
   ): Observable<PageResult<User>> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const filtered = applyUserSearch(
         MOCK_USERS.filter((user) => mockUserHeadquartersId(user) === headquartersId),
         search,
@@ -190,7 +190,7 @@ export class UsersApi {
   }
 
   getAll(): Observable<User[]> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       return of(MOCK_USERS);
     }
 
@@ -200,7 +200,7 @@ export class UsersApi {
   }
 
   getById(userId: number): Observable<User> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const user = MOCK_USERS.find((item) => item.id === userId);
       return of(
         user ?? {
@@ -221,7 +221,7 @@ export class UsersApi {
   }
 
   create(body: CreateUserRequest): Observable<User> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const createdId = Date.now();
       const created = {
         id: createdId,
@@ -242,7 +242,7 @@ export class UsersApi {
   }
 
   updateRoles(userId: number, body: UpdateRolesRequest): Observable<User> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const index = MOCK_USERS.findIndex((user) => user.id === userId);
       const previous = index >= 0 ? MOCK_USERS[index] : MOCK_USERS[0];
       const updated = { ...previous, id: userId, roles: body.roles };
@@ -258,7 +258,7 @@ export class UsersApi {
   }
 
   update(userId: number, body: UpdateUserRequest): Observable<User> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const index = MOCK_USERS.findIndex((user) => user.id === userId);
       const previous = index >= 0 ? MOCK_USERS[index] : MOCK_USERS[0];
       const updated = {
@@ -280,7 +280,7 @@ export class UsersApi {
   }
 
   remove(userId: number): Observable<void> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const index = MOCK_USERS.findIndex((user) => user.id === userId);
       if (index >= 0) {
         MOCK_USERS.splice(index, 1);

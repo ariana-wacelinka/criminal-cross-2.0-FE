@@ -1,11 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { map, Observable, of } from 'rxjs';
 import { ActivitySchedule, SchedulerType, SessionTemplateType, WeekDay } from '../domain/models';
 import { API_BASE_URL } from '../http/api-base-url.token';
+import { API_MOCK_MODE } from '../http';
 import { toHttpParams } from '../http/http-params.util';
-
-const API_MOCK_MODE = true;
+import { ApiResponse } from '../domain/models';
 
 const MOCK_ACTIVITY_SCHEDULES: ActivitySchedule[] = Array.from({ length: 42 }, (_, index) => ({
   id: index + 1,
@@ -43,13 +43,21 @@ export interface CreateActivityScheduleRequest {
   scheduledDate?: string;
 }
 
+function unwrapApiResponse<T>(response: ApiResponse<T> | T): T {
+  if (response && typeof response === 'object' && 'data' in response) {
+    return (response as ApiResponse<T>).data;
+  }
+  return response as T;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ActivitySchedulesApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
+  private readonly apiMockMode = inject(API_MOCK_MODE);
 
   create(body: CreateActivityScheduleRequest): Observable<ActivitySchedule> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const created: ActivitySchedule = {
         id: Date.now(),
         organizationId: body.organizationId,
@@ -70,21 +78,30 @@ export class ActivitySchedulesApi {
       return of(created);
     }
 
-    return this.http.post<ActivitySchedule>(`${this.baseUrl}/activity-schedules`, body);
+    return this.http
+      .post<
+        ApiResponse<ActivitySchedule> | ActivitySchedule
+      >(`${this.baseUrl}/activity-schedules`, body)
+      .pipe(map(unwrapApiResponse));
   }
 
   getAll(headquartersId: number): Observable<ActivitySchedule[]> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       return of(MOCK_ACTIVITY_SCHEDULES.filter((item) => item.headquartersId === headquartersId));
     }
 
-    return this.http.get<ActivitySchedule[]>(`${this.baseUrl}/activity-schedules`, {
-      params: toHttpParams({ headquartersId }),
-    });
+    return this.http
+      .get<ApiResponse<ActivitySchedule[]> | ActivitySchedule[]>(
+        `${this.baseUrl}/activity-schedules`,
+        {
+          params: toHttpParams({ headquartersId }),
+        },
+      )
+      .pipe(map(unwrapApiResponse));
   }
 
   update(id: number, body: CreateActivityScheduleRequest): Observable<ActivitySchedule> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const index = MOCK_ACTIVITY_SCHEDULES.findIndex((item) => item.id === id);
       const updated: ActivitySchedule = {
         id,
@@ -108,11 +125,15 @@ export class ActivitySchedulesApi {
       return of(updated);
     }
 
-    return this.http.put<ActivitySchedule>(`${this.baseUrl}/activity-schedules/${id}`, body);
+    return this.http
+      .put<
+        ApiResponse<ActivitySchedule> | ActivitySchedule
+      >(`${this.baseUrl}/activity-schedules/${id}`, body)
+      .pipe(map(unwrapApiResponse));
   }
 
   remove(id: number): Observable<void> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const index = MOCK_ACTIVITY_SCHEDULES.findIndex((item) => item.id === id);
       if (index >= 0) {
         MOCK_ACTIVITY_SCHEDULES.splice(index, 1);

@@ -1,11 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { Headquarters, PageResult } from '../domain/models';
+import { map, Observable, of } from 'rxjs';
+import { ApiResponse, Headquarters, PageResult } from '../domain/models';
 import { API_BASE_URL } from '../http/api-base-url.token';
+import { API_MOCK_MODE } from '../http';
 import { toHttpParams } from '../http/http-params.util';
-
-const API_MOCK_MODE = true;
 
 const MOCK_HEADQUARTERS: Headquarters[] = Array.from({ length: 56 }, (_, index) => {
   const id = 100 + index + 1;
@@ -31,17 +30,25 @@ export interface UpsertHeadquartersRequest {
   name: string;
 }
 
+function unwrapApiResponse<T>(response: ApiResponse<T> | T): T {
+  if (response && typeof response === 'object' && 'data' in response) {
+    return (response as ApiResponse<T>).data;
+  }
+  return response as T;
+}
+
 @Injectable({ providedIn: 'root' })
 export class HeadquartersApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
+  private readonly apiMockMode = inject(API_MOCK_MODE);
 
   getPage(
     page: number,
     size: number,
     organizationId?: number,
   ): Observable<PageResult<Headquarters>> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const safePage = Math.max(0, page);
       const safeSize = Math.max(1, size);
       const source = organizationId
@@ -57,45 +64,56 @@ export class HeadquartersApi {
       });
     }
 
-    return this.http.get<PageResult<Headquarters>>(`${this.baseUrl}/headquarters`, {
-      params: toHttpParams({ page, size, organizationId }),
-    });
+    return this.http
+      .get<ApiResponse<PageResult<Headquarters>> | PageResult<Headquarters>>(
+        `${this.baseUrl}/headquarters`,
+        {
+          params: toHttpParams({ page, size, organizationId }),
+        },
+      )
+      .pipe(map(unwrapApiResponse));
   }
 
   getAll(organizationId?: number): Observable<Headquarters[]> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const filtered = organizationId
         ? MOCK_HEADQUARTERS.filter((hq) => hq.organizationId === organizationId)
         : MOCK_HEADQUARTERS;
       return of(filtered);
     }
 
-    return this.http.get<Headquarters[]>(`${this.baseUrl}/headquarters`, {
-      params: toHttpParams({ organizationId }),
-    });
+    return this.http
+      .get<ApiResponse<Headquarters[]> | Headquarters[]>(`${this.baseUrl}/headquarters`, {
+        params: toHttpParams({ organizationId }),
+      })
+      .pipe(map(unwrapApiResponse));
   }
 
   getById(id: number): Observable<Headquarters> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const headquarters = MOCK_HEADQUARTERS.find((hq) => hq.id === id);
       return of(headquarters ?? { id, organizationId: 0, name: 'Sede no encontrada' });
     }
 
-    return this.http.get<Headquarters>(`${this.baseUrl}/headquarters/${id}`);
+    return this.http
+      .get<ApiResponse<Headquarters> | Headquarters>(`${this.baseUrl}/headquarters/${id}`)
+      .pipe(map(unwrapApiResponse));
   }
 
   create(body: UpsertHeadquartersRequest): Observable<Headquarters> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const created = { id: Date.now(), organizationId: body.organizationId, name: body.name };
       MOCK_HEADQUARTERS.unshift(created);
       return of(created);
     }
 
-    return this.http.post<Headquarters>(`${this.baseUrl}/headquarters`, body);
+    return this.http
+      .post<ApiResponse<Headquarters> | Headquarters>(`${this.baseUrl}/headquarters`, body)
+      .pipe(map(unwrapApiResponse));
   }
 
   update(id: number, body: UpsertHeadquartersRequest): Observable<Headquarters> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const updated = { id, organizationId: body.organizationId, name: body.name };
       const index = MOCK_HEADQUARTERS.findIndex((headquarters) => headquarters.id === id);
       if (index >= 0) {
@@ -104,11 +122,13 @@ export class HeadquartersApi {
       return of(updated);
     }
 
-    return this.http.put<Headquarters>(`${this.baseUrl}/headquarters/${id}`, body);
+    return this.http
+      .put<ApiResponse<Headquarters> | Headquarters>(`${this.baseUrl}/headquarters/${id}`, body)
+      .pipe(map(unwrapApiResponse));
   }
 
   remove(id: number): Observable<void> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const index = MOCK_HEADQUARTERS.findIndex((headquarters) => headquarters.id === id);
       if (index >= 0) {
         MOCK_HEADQUARTERS.splice(index, 1);

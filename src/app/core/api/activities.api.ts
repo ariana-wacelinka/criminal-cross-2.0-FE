@@ -1,11 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { Activity, ActivityPageResponse } from '../domain/models';
+import { map, Observable, of } from 'rxjs';
+import { Activity, ActivityPageResponse, ApiResponse } from '../domain/models';
 import { API_BASE_URL } from '../http/api-base-url.token';
+import { API_MOCK_MODE } from '../http';
 import { toHttpParams } from '../http/http-params.util';
-
-const API_MOCK_MODE = true;
 
 const MOCK_ACTIVITIES: Activity[] = Array.from({ length: 140 }, (_, index) => {
   const hqId = 101 + (index % 56);
@@ -47,13 +46,21 @@ export interface GetActivitiesQuery {
   size?: number;
 }
 
+function unwrapApiResponse<T>(response: ApiResponse<T> | T): T {
+  if (response && typeof response === 'object' && 'data' in response) {
+    return (response as ApiResponse<T>).data;
+  }
+  return response as T;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ActivitiesApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
+  private readonly apiMockMode = inject(API_MOCK_MODE);
 
   getAll(query: GetActivitiesQuery): Observable<ActivityPageResponse> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const page = Math.max(0, query.page ?? 0);
       const size = Math.max(1, query.size ?? 10);
       const byHeadquarters = MOCK_ACTIVITIES.filter((item) => item.hqId === query.hqId);
@@ -70,13 +77,15 @@ export class ActivitiesApi {
       return of({ content, page, size, totalElements, totalPages });
     }
 
-    return this.http.get<ActivityPageResponse>(`${this.baseUrl}/activities`, {
-      params: toHttpParams(query),
-    });
+    return this.http
+      .get<ApiResponse<ActivityPageResponse> | ActivityPageResponse>(`${this.baseUrl}/activities`, {
+        params: toHttpParams(query),
+      })
+      .pipe(map(unwrapApiResponse));
   }
 
   getById(id: number): Observable<Activity> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const activity = MOCK_ACTIVITIES.find((item) => item.id === id);
       return of(
         activity ?? {
@@ -89,11 +98,13 @@ export class ActivitiesApi {
       );
     }
 
-    return this.http.get<Activity>(`${this.baseUrl}/activities/${id}`);
+    return this.http
+      .get<ApiResponse<Activity> | Activity>(`${this.baseUrl}/activities/${id}`)
+      .pipe(map(unwrapApiResponse));
   }
 
   create(body: UpsertActivityRequest): Observable<Activity> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const created: Activity = {
         id: Date.now(),
         name: body.name,
@@ -105,11 +116,13 @@ export class ActivitiesApi {
       return of(created);
     }
 
-    return this.http.post<Activity>(`${this.baseUrl}/activities`, body);
+    return this.http
+      .post<ApiResponse<Activity> | Activity>(`${this.baseUrl}/activities`, body)
+      .pipe(map(unwrapApiResponse));
   }
 
   update(id: number, body: UpdateActivityRequest): Observable<Activity> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const index = MOCK_ACTIVITIES.findIndex((item) => item.id === id);
       const previous = index >= 0 ? MOCK_ACTIVITIES[index] : undefined;
       const updated: Activity = {
@@ -127,11 +140,13 @@ export class ActivitiesApi {
       return of(updated);
     }
 
-    return this.http.put<Activity>(`${this.baseUrl}/activities/${id}`, body);
+    return this.http
+      .put<ApiResponse<Activity> | Activity>(`${this.baseUrl}/activities/${id}`, body)
+      .pipe(map(unwrapApiResponse));
   }
 
   remove(id: number): Observable<void> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const index = MOCK_ACTIVITIES.findIndex((item) => item.id === id);
       if (index >= 0) {
         MOCK_ACTIVITIES.splice(index, 1);

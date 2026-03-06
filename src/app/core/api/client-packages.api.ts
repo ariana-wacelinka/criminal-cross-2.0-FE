@@ -1,10 +1,9 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { ClientPackage } from '../domain/models';
+import { map, Observable, of } from 'rxjs';
+import { ApiResponse, ClientPackage } from '../domain/models';
 import { API_BASE_URL } from '../http/api-base-url.token';
-
-const API_MOCK_MODE = true;
+import { API_MOCK_MODE } from '../http';
 
 const MOCK_CLIENT_PACKAGES: ClientPackage[] = [
   {
@@ -92,13 +91,21 @@ function toCredits(activityTokens: Record<string, number>) {
     .filter((item) => Number.isFinite(item.activityId));
 }
 
+function unwrapApiResponse<T>(response: ApiResponse<T> | T): T {
+  if (response && typeof response === 'object' && 'data' in response) {
+    return (response as ApiResponse<T>).data;
+  }
+  return response as T;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ClientPackagesApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
+  private readonly apiMockMode = inject(API_MOCK_MODE);
 
   create(userId: number, body: UpsertClientPackageRequest): Observable<ClientPackage> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       for (const item of MOCK_CLIENT_PACKAGES) {
         if (item.userId === userId) {
           item.active = false;
@@ -118,7 +125,11 @@ export class ClientPackagesApi {
       return of(created);
     }
 
-    return this.http.post<ClientPackage>(`${this.baseUrl}/clients/${userId}/packages`, body);
+    return this.http
+      .post<
+        ApiResponse<ClientPackage> | ClientPackage
+      >(`${this.baseUrl}/clients/${userId}/packages`, body)
+      .pipe(map(unwrapApiResponse));
   }
 
   update(
@@ -126,7 +137,7 @@ export class ClientPackagesApi {
     clientPackageId: number,
     body: Partial<UpsertClientPackageRequest>,
   ): Observable<ClientPackage> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const index = MOCK_CLIENT_PACKAGES.findIndex(
         (item) => item.id === clientPackageId && item.userId === userId,
       );
@@ -144,25 +155,34 @@ export class ClientPackagesApi {
       return of(updated);
     }
 
-    return this.http.patch<ClientPackage>(
-      `${this.baseUrl}/clients/${userId}/packages/${clientPackageId}`,
-      body,
-    );
+    return this.http
+      .patch<
+        ApiResponse<ClientPackage> | ClientPackage
+      >(`${this.baseUrl}/clients/${userId}/packages/${clientPackageId}`, body)
+      .pipe(map(unwrapApiResponse));
   }
 
   getActive(userId: number): Observable<ClientPackage[]> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       return of(MOCK_CLIENT_PACKAGES.filter((item) => item.userId === userId && item.active));
     }
 
-    return this.http.get<ClientPackage[]>(`${this.baseUrl}/clients/${userId}/packages/active`);
+    return this.http
+      .get<
+        ApiResponse<ClientPackage[]> | ClientPackage[]
+      >(`${this.baseUrl}/clients/${userId}/packages/active`)
+      .pipe(map(unwrapApiResponse));
   }
 
   getAll(userId: number): Observable<ClientPackage[]> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       return of(MOCK_CLIENT_PACKAGES.filter((item) => item.userId === userId));
     }
 
-    return this.http.get<ClientPackage[]>(`${this.baseUrl}/clients/${userId}/packages`);
+    return this.http
+      .get<
+        ApiResponse<ClientPackage[]> | ClientPackage[]
+      >(`${this.baseUrl}/clients/${userId}/packages`)
+      .pipe(map(unwrapApiResponse));
   }
 }

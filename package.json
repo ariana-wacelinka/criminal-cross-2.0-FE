@@ -3,9 +3,10 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
-    "watch": "ng build --watch --configuration development",
+    "env:sync": "node scripts/sync-env.mjs",
+    "start": "npm run env:sync && ng serve",
+    "build": "npm run env:sync && ng build",
+    "watch": "npm run env:sync && ng build --watch --configuration development",
     "test": "ng test"
   },
   "private": true,

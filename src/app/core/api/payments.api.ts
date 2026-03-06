@@ -3,9 +3,8 @@ import { inject, Injectable } from '@angular/core';
 import { map, Observable, of } from 'rxjs';
 import { ApiResponse, PageResult, Payment, PaymentMethod } from '../domain/models';
 import { API_BASE_URL } from '../http/api-base-url.token';
+import { API_MOCK_MODE } from '../http';
 import { toHttpParams } from '../http/http-params.util';
-
-const API_MOCK_MODE = true;
 
 const MOCK_PAYMENTS: Payment[] = Array.from({ length: 18 }, (_, index) => ({
   id: index + 1,
@@ -128,13 +127,14 @@ function fromBackendPage<T>(pageResult: PageResult<T>): PageResult<T> {
 export class PaymentsApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
+  private readonly apiMockMode = inject(API_MOCK_MODE);
 
   getAllByHq(
     headquartersId: number,
     page: number,
     size: number,
   ): Observable<PageResult<PaymentListItem>> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       return of(
         slicePaymentsPage(
           MOCK_PAYMENT_LIST.filter((item) => item.headquartersId === headquartersId),
@@ -159,7 +159,7 @@ export class PaymentsApi {
     page: number,
     size: number,
   ): Observable<PageResult<PaymentListItem>> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       return of(
         slicePaymentsPage(
           MOCK_PAYMENT_LIST.filter((item) => item.organizationId === organizationId),
@@ -180,7 +180,7 @@ export class PaymentsApi {
   }
 
   getPage(page: number, size: number): Observable<PageResult<Payment>> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       return of(slicePage(MOCK_PAYMENTS, page, size));
     }
 
@@ -192,7 +192,7 @@ export class PaymentsApi {
   }
 
   getAll(): Observable<Payment[]> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       return of(MOCK_PAYMENTS);
     }
 
@@ -202,7 +202,7 @@ export class PaymentsApi {
   }
 
   create(body: CreatePaymentRequest): Observable<Payment> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const createdId = Date.now();
       const created: Payment = {
         id: createdId,
