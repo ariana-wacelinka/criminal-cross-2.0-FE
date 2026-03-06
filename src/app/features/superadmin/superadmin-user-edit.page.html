@@ -56,26 +56,28 @@
       </label>
     </div>
 
-    <p class="mt-5 text-sm text-athlium-muted">
-      Selecciona los roles permitidos para este usuario.
-    </p>
+    @if (canEditRoles()) {
+      <p class="mt-5 text-sm text-athlium-muted">
+        Selecciona los roles permitidos para este usuario.
+      </p>
 
-    <div class="mt-4 flex flex-wrap gap-2">
-      @for (role of availableRoles; track role) {
-        <button
-          type="button"
-          class="rounded-full border px-3 py-1 text-xs font-semibold transition"
-          [class.border-athlium-primary/35]="isRoleSelected(role)"
-          [class.bg-athlium-primary/20]="isRoleSelected(role)"
-          [class.text-athlium-text]="isRoleSelected(role)"
-          [class.border-athlium-primary/12]="!isRoleSelected(role)"
-          [class.text-athlium-muted]="!isRoleSelected(role)"
-          (click)="toggleRole(role)"
-        >
-          {{ role }}
-        </button>
-      }
-    </div>
+      <div class="mt-4 flex flex-wrap gap-2">
+        @for (role of availableRoles(); track role) {
+          <button
+            type="button"
+            class="rounded-full border px-3 py-1 text-xs font-semibold transition"
+            [class.border-athlium-primary/35]="isRoleSelected(role)"
+            [class.bg-athlium-primary/20]="isRoleSelected(role)"
+            [class.text-athlium-text]="isRoleSelected(role)"
+            [class.border-athlium-primary/12]="!isRoleSelected(role)"
+            [class.text-athlium-muted]="!isRoleSelected(role)"
+            (click)="toggleRole(role)"
+          >
+            {{ role }}
+          </button>
+        }
+      </div>
+    }
 
     @if (errorMessage()) {
       <p

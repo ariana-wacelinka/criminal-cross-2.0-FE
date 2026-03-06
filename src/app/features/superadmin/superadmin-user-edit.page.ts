@@ -11,6 +11,7 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { UpdateRolesRequest, UpdateUserRequest, UsersApi } from '../../core/api/users.api';
+import { AuthSessionService } from '../../core/auth';
 import { Role } from '../../core/domain/models';
 import { UiToastService } from '../../core/ui/toast.service';
 
@@ -25,17 +26,28 @@ export class SuperadminUserEditPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly usersApi = inject(UsersApi);
+  private readonly authSession = inject(AuthSessionService);
   private readonly toast = inject(UiToastService);
 
   private readonly userId = Number(this.route.snapshot.paramMap.get('userId'));
 
-  protected readonly availableRoles = [
-    Role.CLIENT,
-    Role.PROFESSOR,
-    Role.ORG_ADMIN,
-    Role.ORG_OWNER,
-    Role.SUPERADMIN,
-  ];
+  protected readonly currentEditorRole = computed(
+    () => this.authSession.user()?.roles[0] ?? Role.ORG_ADMIN,
+  );
+  protected readonly canEditRoles = computed(() => this.currentEditorRole() !== Role.PROFESSOR);
+  protected readonly availableRoles = computed(() => {
+    switch (this.currentEditorRole()) {
+      case Role.SUPERADMIN:
+        return [Role.CLIENT, Role.PROFESSOR, Role.ORG_ADMIN, Role.ORG_OWNER, Role.SUPERADMIN];
+      case Role.ORG_OWNER:
+        return [Role.CLIENT, Role.PROFESSOR, Role.ORG_ADMIN];
+      case Role.ORG_ADMIN:
+        return [Role.CLIENT, Role.PROFESSOR];
+      default:
+        return [] as Role[];
+    }
+  });
+  protected readonly allowedRoleSet = computed(() => new Set(this.availableRoles()));
 
   protected readonly user = toSignal(this.usersApi.getById(this.userId), {
     initialValue: {
@@ -77,7 +89,8 @@ export class SuperadminUserEditPage {
           },
           { emitEvent: false },
         );
-        this.selectedRoles.set([...currentUser.roles]);
+        const allowed = new Set(this.availableRoles());
+        this.selectedRoles.set(currentUser.roles.filter((role) => allowed.has(role)));
         initialized = true;
       }
     });
@@ -100,7 +113,7 @@ export class SuperadminUserEditPage {
       return;
     }
 
-    if (!this.selectedRoles().length) {
+    if (this.canEditRoles() && !this.selectedRoles().length) {
       this.errorMessage.set('Debes seleccionar al menos un rol.');
       return;
     }
@@ -113,13 +126,22 @@ export class SuperadminUserEditPage {
       email: this.form.controls.email.value,
     };
 
+    const sanitizedRoles = this.selectedRoles().filter((role) => this.allowedRoleSet().has(role));
+
+    if (this.canEditRoles() && sanitizedRoles.length !== this.selectedRoles().length) {
+      this.errorMessage.set('Se detectaron roles no permitidos para tu perfil.');
+      return;
+    }
+
     const rolesPayload: UpdateRolesRequest = {
-      roles: this.selectedRoles(),
+      roles: sanitizedRoles,
     };
 
     try {
       await firstValueFrom(this.usersApi.update(this.userId, userPayload));
-      await firstValueFrom(this.usersApi.updateRoles(this.userId, rolesPayload));
+      if (this.canEditRoles()) {
+        await firstValueFrom(this.usersApi.updateRoles(this.userId, rolesPayload));
+      }
       this.toast.success('Usuario actualizado.');
       await this.router.navigateByUrl('/users');
     } catch {
