@@ -110,6 +110,75 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/superadmin').then((m) => m.SuperadminUserDeletePage),
       },
+      {
+        path: 'org-owner/dashboard',
+        loadComponent: () => import('./features/org-owner').then((m) => m.OrgOwnerPage),
+      },
+      {
+        path: 'org-owner/schedules',
+        loadComponent: () => import('./features/operations-shared').then((m) => m.SchedulesOpsPage),
+        data: { scope: 'org' },
+      },
+      {
+        path: 'org-owner/agenda',
+        loadComponent: () => import('./features/operations-shared').then((m) => m.AgendaOpsPage),
+        data: { scope: 'org' },
+      },
+      {
+        path: 'org-owner/headquarters',
+        loadComponent: () => import('./features/org-owner').then((m) => m.OrgOwnerHeadquartersPage),
+      },
+      {
+        path: 'org-owner/users',
+        loadComponent: () => import('./features/org-owner').then((m) => m.OrgOwnerUsersPage),
+      },
+      {
+        path: 'org-admin/dashboard',
+        redirectTo: 'org-owner/dashboard',
+        pathMatch: 'full',
+      },
+      {
+        path: 'org-admin/schedules',
+        redirectTo: 'org-owner/schedules',
+        pathMatch: 'full',
+      },
+      {
+        path: 'org-admin/agenda',
+        redirectTo: 'org-owner/agenda',
+        pathMatch: 'full',
+      },
+      {
+        path: 'org-admin/headquarters',
+        redirectTo: 'org-owner/headquarters',
+        pathMatch: 'full',
+      },
+      {
+        path: 'org-admin/users',
+        redirectTo: 'org-owner/users',
+        pathMatch: 'full',
+      },
+      {
+        path: 'hq-admin/dashboard',
+        loadComponent: () => import('./features/hq-admin').then((m) => m.HqAdminPage),
+      },
+      {
+        path: 'hq-admin/schedules',
+        loadComponent: () => import('./features/operations-shared').then((m) => m.SchedulesOpsPage),
+        data: { scope: 'hq' },
+      },
+      {
+        path: 'hq-admin/agenda',
+        loadComponent: () => import('./features/operations-shared').then((m) => m.AgendaOpsPage),
+        data: { scope: 'hq' },
+      },
+      {
+        path: 'hq-admin/users',
+        loadComponent: () => import('./features/hq-admin').then((m) => m.HqAdminUsersPage),
+      },
+      {
+        path: 'hq-admin/payments',
+        loadComponent: () => import('./features/hq-admin').then((m) => m.HqAdminPaymentsPage),
+      },
     ],
   },
   {

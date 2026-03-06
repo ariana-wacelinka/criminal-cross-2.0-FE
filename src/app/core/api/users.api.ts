@@ -3,9 +3,8 @@ import { inject, Injectable } from '@angular/core';
 import { map, Observable, of } from 'rxjs';
 import { ApiResponse, PageResult, Role, User } from '../domain/models';
 import { API_BASE_URL } from '../http/api-base-url.token';
+import { API_MOCK_MODE } from '../http';
 import { toHttpParams } from '../http/http-params.util';
-
-const API_MOCK_MODE = true;
 
 const MOCK_USERS: User[] = Array.from({ length: 64 }, (_, index) => {
   const id = index + 10;
@@ -79,29 +78,119 @@ function unwrapApiResponse<T>(response: ApiResponse<T> | T): T {
   return response as T;
 }
 
+function mockUserOrganizationId(user: User): number {
+  return (user.id % 24) + 1;
+}
+
+function mockUserHeadquartersId(user: User): number {
+  return 101 + (user.id % 6);
+}
+
+function slicePage(items: User[], page: number, size: number): PageResult<User> {
+  const safePage = Math.max(0, page);
+  const safeSize = Math.max(1, size);
+  const start = safePage * safeSize;
+  return {
+    items: items.slice(start, start + safeSize),
+    total: items.length,
+    page: safePage,
+    size: safeSize,
+  };
+}
+
+function applyUserSearch(items: User[], search?: string): User[] {
+  const normalized = search?.trim().toLowerCase();
+  if (!normalized) {
+    return items;
+  }
+
+  return items.filter((user) =>
+    `${user.name} ${user.lastName} ${user.email}`.toLowerCase().includes(normalized),
+  );
+}
+
+function toBackendPage(page: number): number {
+  return Math.max(1, page + 1);
+}
+
+function fromBackendPage<T>(pageResult: PageResult<T>): PageResult<T> {
+  const backendPage = Number.isFinite(pageResult.page) ? pageResult.page : 1;
+  return {
+    ...pageResult,
+    page: Math.max(0, backendPage - 1),
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class UsersApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
+  private readonly apiMockMode = inject(API_MOCK_MODE);
 
-  getPage(page: number, size: number): Observable<PageResult<User>> {
-    if (API_MOCK_MODE) {
-      const safePage = Math.max(0, page);
-      const safeSize = Math.max(1, size);
-      const start = safePage * safeSize;
-      const items = MOCK_USERS.slice(start, start + safeSize);
-      return of({ items, total: MOCK_USERS.length, page: safePage, size: safeSize });
+  getPage(page: number, size: number, search?: string): Observable<PageResult<User>> {
+    if (this.apiMockMode) {
+      return of(slicePage(applyUserSearch(MOCK_USERS, search), page, size));
     }
 
     return this.http
       .get<ApiResponse<PageResult<User>> | PageResult<User>>(`${this.baseUrl}/users`, {
-        params: toHttpParams({ page, size }),
+        params: toHttpParams({ page: toBackendPage(page), size, search }),
       })
-      .pipe(map(unwrapApiResponse));
+      .pipe(map(unwrapApiResponse), map(fromBackendPage));
+  }
+
+  getUsersByOrg(
+    organizationId: number,
+    page: number,
+    size: number,
+    search?: string,
+  ): Observable<PageResult<User>> {
+    if (this.apiMockMode) {
+      const filtered = applyUserSearch(
+        MOCK_USERS.filter((user) => mockUserOrganizationId(user) === organizationId),
+        search,
+      );
+      return of(slicePage(filtered, page, size));
+    }
+
+    return this.http
+      .get<ApiResponse<PageResult<User>> | PageResult<User>>(`${this.baseUrl}/users`, {
+        params: toHttpParams({ organizationId, page: toBackendPage(page), size, search }),
+      })
+      .pipe(map(unwrapApiResponse), map(fromBackendPage));
+  }
+
+  getUsersByHq(
+    headquartersId: number,
+    page: number,
+    size: number,
+    search?: string,
+  ): Observable<PageResult<User>> {
+    if (this.apiMockMode) {
+      const filtered = applyUserSearch(
+        MOCK_USERS.filter((user) => mockUserHeadquartersId(user) === headquartersId),
+        search,
+      );
+      return of(slicePage(filtered, page, size));
+    }
+
+    return this.http
+      .get<ApiResponse<PageResult<User>> | PageResult<User>>(`${this.baseUrl}/users`, {
+        params: toHttpParams({ headquartersId, page: toBackendPage(page), size, search }),
+      })
+      .pipe(map(unwrapApiResponse), map(fromBackendPage));
+  }
+
+  getAllUsers(): Observable<User[]> {
+    return this.getAll();
+  }
+
+  getUserById(userId: number): Observable<User> {
+    return this.getById(userId);
   }
 
   getAll(): Observable<User[]> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       return of(MOCK_USERS);
     }
 
@@ -111,7 +200,7 @@ export class UsersApi {
   }
 
   getById(userId: number): Observable<User> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const user = MOCK_USERS.find((item) => item.id === userId);
       return of(
         user ?? {
@@ -132,9 +221,10 @@ export class UsersApi {
   }
 
   create(body: CreateUserRequest): Observable<User> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
+      const createdId = Date.now();
       const created = {
-        id: Date.now(),
+        id: createdId,
         firebaseUid: buildMockFirebaseUid(body.email),
         email: body.email,
         name: body.name,
@@ -152,7 +242,7 @@ export class UsersApi {
   }
 
   updateRoles(userId: number, body: UpdateRolesRequest): Observable<User> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const index = MOCK_USERS.findIndex((user) => user.id === userId);
       const previous = index >= 0 ? MOCK_USERS[index] : MOCK_USERS[0];
       const updated = { ...previous, id: userId, roles: body.roles };
@@ -168,7 +258,7 @@ export class UsersApi {
   }
 
   update(userId: number, body: UpdateUserRequest): Observable<User> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const index = MOCK_USERS.findIndex((user) => user.id === userId);
       const previous = index >= 0 ? MOCK_USERS[index] : MOCK_USERS[0];
       const updated = {
@@ -190,7 +280,7 @@ export class UsersApi {
   }
 
   remove(userId: number): Observable<void> {
-    if (API_MOCK_MODE) {
+    if (this.apiMockMode) {
       const index = MOCK_USERS.findIndex((user) => user.id === userId);
       if (index >= 0) {
         MOCK_USERS.splice(index, 1);

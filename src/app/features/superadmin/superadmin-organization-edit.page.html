@@ -3,8 +3,8 @@
     class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
   >
     <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Superadmin</p>
-    <h1 class="mt-2 font-title text-3xl font-semibold">Editar organizacion</h1>
-    <p class="mt-1 text-sm text-athlium-muted">Actualiza nombre y datos basicos.</p>
+    <h1 class="mt-2 font-title text-3xl font-semibold">Editar organización</h1>
+    <p class="mt-1 text-sm text-athlium-muted">Actualiza nombre y datos básicos.</p>
   </header>
 
   <form
@@ -12,7 +12,7 @@
     [formGroup]="form"
     (ngSubmit)="save()"
   >
-    <label class="text-sm text-athlium-muted" for="org-name">Nombre de la organizacion</label>
+    <label class="text-sm text-athlium-muted" for="org-name">Nombre de la organización</label>
     <input
       id="org-name"
       class="mt-2 w-full appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
@@ -20,6 +20,9 @@
       placeholder="Nombre"
       type="text"
     />
+    @if (form.controls.name.hasError('required') && form.controls.name.touched) {
+      <p class="mt-2 text-xs text-red-300">Ingresa el nombre de la organización.</p>
+    }
 
     <div class="mt-5 flex items-center gap-2">
       <button

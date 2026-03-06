@@ -35,7 +35,7 @@ export class SuperadminHeadquartersDetailPage {
     () =>
       this.organizations().find(
         (organization) => organization.id === this.headquarters().organizationId,
-      )?.name ?? 'Organizacion no encontrada',
+      )?.name ?? 'Organización no encontrada',
   );
 
   protected async goBack(): Promise<void> {

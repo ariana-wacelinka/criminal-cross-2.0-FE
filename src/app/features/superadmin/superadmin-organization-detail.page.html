@@ -15,7 +15,7 @@
     <div>
       <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Superadmin</p>
       <h1 class="font-title text-3xl font-semibold">{{ organization().name }}</h1>
-      <p class="mt-1 text-sm text-athlium-muted">Detalle de organizacion</p>
+      <p class="mt-1 text-sm text-athlium-muted">Detalle de organización</p>
     </div>
   </header>
 
@@ -83,7 +83,7 @@
         class="w-full max-w-md rounded-panel border border-athlium-primary/12 bg-athlium-surface p-5 shadow-soft"
       >
         <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">
-          Confirmacion requerida
+          Confirmación requerida
         </p>
         <h3 class="mt-2 font-title text-2xl font-semibold">
           Eliminar {{ selectedHeadquarters.name }}
@@ -110,7 +110,7 @@
           />
           <input
             class="appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
-            placeholder="Contrasena"
+            placeholder="Contraseña"
             type="password"
             [value]="credentialPassword()"
             (input)="onPasswordInput($any($event.target).value)"
@@ -123,7 +123,7 @@
             class="rounded-xl border border-red-400/35 bg-red-500/10 px-4 py-2 font-semibold text-red-200 transition hover:bg-red-500/20"
             (click)="confirmHeadquartersDelete()"
           >
-            Confirmar eliminacion
+            Confirmar eliminación
           </button>
           <button
             type="button"

@@ -23,31 +23,49 @@ export class HomePage {
   protected readonly currentRole = computed(
     () => this.authSession.user()?.roles[0] ?? Role.ORG_ADMIN,
   );
+  protected readonly currentRoleLabel = computed(() => this.roleLabel(this.currentRole()));
 
   protected readonly roleNavItems = computed<ShellNavItem[]>(() => {
     switch (this.currentRole()) {
       case Role.CLIENT:
         return [
-          { label: 'Dashboard', path: '/dashboard' },
+          { label: 'Inicio', path: '/dashboard' },
           { label: 'Mis clases', path: '/dashboard' },
           { label: 'Mis paquetes', path: '/dashboard' },
         ];
       case Role.PROFESSOR:
         return [
-          { label: 'Dashboard', path: '/dashboard' },
+          { label: 'Inicio', path: '/dashboard' },
           { label: 'Mis sesiones', path: '/dashboard' },
           { label: 'Asistencia', path: '/dashboard' },
         ];
       case Role.SUPERADMIN:
         return [
-          { label: 'Dashboard', path: '/dashboard' },
+          { label: 'Inicio', path: '/dashboard' },
           { label: 'Organizaciones', path: '/organizations' },
           { label: 'Sedes', path: '/headquarters' },
           { label: 'Usuarios', path: '/users' },
         ];
+      case Role.ORG_OWNER:
+        return [
+          { label: 'Inicio', path: '/org-owner/dashboard' },
+          { label: 'Sedes', path: '/org-owner/headquarters' },
+          { label: 'Usuarios', path: '/org-owner/users' },
+          { label: 'Horarios por sede', path: '/org-owner/schedules' },
+          { label: 'Agenda por sede', path: '/org-owner/agenda' },
+        ];
+      case Role.ORG_ADMIN:
+        return [
+          { label: 'Inicio', path: '/hq-admin/dashboard' },
+          { label: 'Usuarios', path: '/hq-admin/users' },
+          { label: 'Pagos', path: '/hq-admin/payments' },
+          { label: 'Actividades', path: '/headquarters/101/activities' },
+          { label: 'Horarios', path: '/hq-admin/schedules' },
+          { label: 'Agenda', path: '/hq-admin/agenda' },
+        ];
       default:
         return [
-          { label: 'Dashboard', path: '/dashboard' },
+          { label: 'Inicio', path: '/dashboard' },
           { label: 'Actividades', path: '/dashboard' },
           { label: 'Horarios', path: '/dashboard' },
         ];
@@ -78,5 +96,22 @@ export class HomePage {
     this.closeMobileMenu();
     await this.authFacade.logout();
     await this.router.navigateByUrl('/login');
+  }
+
+  private roleLabel(role: Role): string {
+    switch (role) {
+      case Role.SUPERADMIN:
+        return 'Superadmin';
+      case Role.ORG_OWNER:
+        return 'Dueño de organización';
+      case Role.ORG_ADMIN:
+        return 'Admin sede';
+      case Role.PROFESSOR:
+        return 'Profesor';
+      case Role.CLIENT:
+        return 'Cliente';
+      default:
+        return role;
+    }
   }
 }

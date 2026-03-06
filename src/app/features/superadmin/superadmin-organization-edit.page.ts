@@ -50,10 +50,10 @@ export class SuperadminOrganizationEditPage {
           name: this.form.controls.name.value,
         }),
       );
-      this.toast.success('Organizacion actualizada.');
+      this.toast.success('Organización actualizada.');
       await this.router.navigateByUrl('/organizations');
     } catch {
-      this.toast.error('No se pudo actualizar la organizacion.');
+      this.toast.error('No se pudo actualizar la organización.');
     }
   }
 

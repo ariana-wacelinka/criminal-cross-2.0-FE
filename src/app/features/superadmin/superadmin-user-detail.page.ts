@@ -2,6 +2,7 @@ import { Location } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
+import { ClientPackagesApi } from '../../core/api/client-packages.api';
 import { UsersApi } from '../../core/api/users.api';
 
 @Component({
@@ -15,6 +16,7 @@ export class SuperadminUserDetailPage {
   private readonly location = inject(Location);
   private readonly router = inject(Router);
   private readonly usersApi = inject(UsersApi);
+  private readonly clientPackagesApi = inject(ClientPackagesApi);
 
   private readonly userId = Number(this.route.snapshot.paramMap.get('userId'));
 
@@ -32,6 +34,16 @@ export class SuperadminUserDetailPage {
 
   protected readonly fullName = computed(() =>
     `${this.user().name} ${this.user().lastName}`.trim(),
+  );
+
+  protected readonly userPackages = toSignal(this.clientPackagesApi.getAll(this.userId), {
+    initialValue: [],
+  });
+  protected readonly activePackages = computed(() =>
+    this.userPackages().filter((item) => item.active),
+  );
+  protected readonly previousPackages = computed(() =>
+    this.userPackages().filter((item) => !item.active),
   );
 
   protected async goBack(): Promise<void> {

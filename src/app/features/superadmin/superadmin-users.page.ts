@@ -15,11 +15,19 @@ export class SuperadminUsersPage {
   private readonly usersApi = inject(UsersApi);
   protected readonly openUserMenuId = signal<number | null>(null);
   protected readonly currentPage = signal(0);
+  protected readonly searchQuery = signal('');
   protected readonly pageSize = 10;
 
+  private readonly usersRequest = computed(() => ({
+    page: this.currentPage(),
+    search: this.searchQuery().trim(),
+  }));
+
   protected readonly usersPage = toSignal(
-    toObservable(this.currentPage).pipe(
-      switchMap((page) => this.usersApi.getPage(page, this.pageSize)),
+    toObservable(this.usersRequest).pipe(
+      switchMap(({ page, search }) =>
+        this.usersApi.getPage(page, this.pageSize, search || undefined),
+      ),
     ),
     { initialValue: null },
   );
@@ -76,5 +84,11 @@ export class SuperadminUsersPage {
   protected async deleteUser(userId: number): Promise<void> {
     this.openUserMenuId.set(null);
     await this.router.navigateByUrl(`/users/${userId}/delete`);
+  }
+
+  protected setSearchQuery(value: string): void {
+    this.searchQuery.set(value);
+    this.currentPage.set(0);
+    this.openUserMenuId.set(null);
   }
 }

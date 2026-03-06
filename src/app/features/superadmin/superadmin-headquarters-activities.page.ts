@@ -19,19 +19,26 @@ export class SuperadminHeadquartersActivitiesPage {
 
   private readonly headquartersId = Number(this.route.snapshot.paramMap.get('headquartersId'));
 
-  protected readonly pageSize = 8;
+  protected readonly pageSize = 20;
   protected readonly currentPage = signal(0);
+  protected readonly searchQuery = signal('');
   protected readonly openActivityMenuId = signal<number | null>(null);
+
+  private readonly activitiesRequest = computed(() => ({
+    page: this.currentPage(),
+    search: this.searchQuery().trim(),
+  }));
 
   protected readonly headquarters = toSignal(this.headquartersApi.getById(this.headquartersId), {
     initialValue: { id: this.headquartersId, organizationId: 0, name: 'Cargando...' },
   });
 
   protected readonly activitiesPage = toSignal(
-    toObservable(this.currentPage).pipe(
-      switchMap((page) =>
+    toObservable(this.activitiesRequest).pipe(
+      switchMap(({ page, search }) =>
         this.activitiesApi.getAll({
           hqId: this.headquartersId,
+          name: search || undefined,
           page,
           size: this.pageSize,
         }),
@@ -103,6 +110,12 @@ export class SuperadminHeadquartersActivitiesPage {
       return;
     }
     this.currentPage.update((page) => page + 1);
+    this.openActivityMenuId.set(null);
+  }
+
+  protected setSearchQuery(value: string): void {
+    this.searchQuery.set(value);
+    this.currentPage.set(0);
     this.openActivityMenuId.set(null);
   }
 }

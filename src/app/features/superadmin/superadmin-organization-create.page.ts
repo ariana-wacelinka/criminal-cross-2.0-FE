@@ -29,10 +29,10 @@ export class SuperadminOrganizationCreatePage {
 
     try {
       await firstValueFrom(this.organizationsApi.create({ name: this.form.controls.name.value }));
-      this.toast.success('Organizacion creada correctamente.');
+      this.toast.success('Organización creada correctamente.');
       await this.router.navigateByUrl('/organizations');
     } catch {
-      this.toast.error('No se pudo crear la organizacion.');
+      this.toast.error('No se pudo crear la organización.');
     }
   }
 

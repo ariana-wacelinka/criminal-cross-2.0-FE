@@ -1,0 +1,225 @@
+<section class="px-4 py-6 text-athlium-text lg:px-8">
+  <header
+    class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">
+      Admin de sede
+    </p>
+    <h1 class="mt-2 font-title text-3xl font-semibold">Pagos</h1>
+    <p class="mt-1 text-sm text-athlium-muted">Gestión de cobros y movimientos de la sede.</p>
+  </header>
+
+  <section
+    class="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-4 shadow-soft"
+  >
+    <p class="text-sm text-athlium-muted">Registro de pagos para clientes de esta sede.</p>
+    <button
+      type="button"
+      class="rounded-xl bg-athlium-primary px-4 py-2 text-sm font-semibold text-athlium-text transition hover:brightness-110"
+      (click)="openCreateForm()"
+    >
+      Registrar pago
+    </button>
+  </section>
+
+  @if (showForm()) {
+    <form
+      class="mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+      [formGroup]="form"
+      (ngSubmit)="createPaymentAndPackage()"
+    >
+      <div class="flex items-center justify-between gap-2">
+        <h2 class="font-title text-xl font-semibold">Nuevo pago</h2>
+        <button
+          type="button"
+          class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-athlium-muted"
+          (click)="closeForm()"
+        >
+          Cerrar
+        </button>
+      </div>
+
+      <div class="mt-4 grid gap-4 lg:grid-cols-2">
+        <label class="grid gap-2 text-sm">
+          <span class="text-athlium-muted">Usuario</span>
+          <div class="relative">
+            <input
+              type="text"
+              [value]="userQuery()"
+              (input)="setUserSearch($any($event.target).value)"
+              (focus)="openUserSelector()"
+              (blur)="closeUserSelector()"
+              placeholder="Buscar usuario"
+              class="w-full appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            />
+
+            @if (showUserOptions()) {
+              <div
+                class="absolute z-40 mt-2 max-h-52 w-full overflow-auto rounded-xl border border-athlium-primary/20 bg-athlium-surface p-2 shadow-[0_14px_26px_rgba(3,9,31,0.62)]"
+                style="background-color: rgb(var(--ath-surface-rgb) / 0.995)"
+              >
+                @if (filteredUsers().length) {
+                  <div class="grid gap-1">
+                    @for (user of filteredUsers(); track user.id) {
+                      <button
+                        type="button"
+                        class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
+                        (click)="selectUser(user.id)"
+                      >
+                        {{ user.name }} {{ user.lastName }} ({{ user.email }})
+                      </button>
+                    }
+                  </div>
+                } @else {
+                  <p class="px-2 py-2 text-sm text-athlium-muted">Sin resultados.</p>
+                }
+              </div>
+            }
+          </div>
+          @if (form.controls.userId.invalid && form.controls.userId.touched) {
+            <p class="text-xs text-red-300">Selecciona un usuario válido.</p>
+          }
+        </label>
+
+        <label class="grid gap-2 text-sm">
+          <span class="text-athlium-muted">Actividad del paquete</span>
+          <div class="relative">
+            <input
+              type="text"
+              [value]="activityQuery()"
+              (input)="setActivitySearch($any($event.target).value)"
+              (focus)="openActivitySelector()"
+              (blur)="closeActivitySelector()"
+              placeholder="Buscar actividad"
+              class="w-full appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            />
+
+            @if (showActivityOptions()) {
+              <div
+                class="absolute z-40 mt-2 max-h-52 w-full overflow-auto rounded-xl border border-athlium-primary/20 bg-athlium-surface p-2 shadow-[0_14px_26px_rgba(3,9,31,0.62)]"
+                style="background-color: rgb(var(--ath-surface-rgb) / 0.995)"
+              >
+                @if (activities().length) {
+                  <div class="grid gap-1">
+                    @for (activity of activities(); track activity.id) {
+                      <button
+                        type="button"
+                        class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
+                        (click)="selectActivity(activity.id)"
+                      >
+                        {{ activity.name }}
+                      </button>
+                    }
+                  </div>
+                } @else {
+                  <p class="px-2 py-2 text-sm text-athlium-muted">Sin resultados.</p>
+                }
+              </div>
+            }
+          </div>
+          @if (form.controls.activityId.invalid && form.controls.activityId.touched) {
+            <p class="text-xs text-red-300">Selecciona una actividad válida.</p>
+          }
+        </label>
+
+        <label class="grid gap-2 text-sm">
+          <span class="text-athlium-muted">Monto</span>
+          <input
+            type="number"
+            min="1"
+            step="0.01"
+            class="appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            formControlName="amount"
+            placeholder="Ej: 20000"
+          />
+          @if (form.controls.amount.hasError('required') && form.controls.amount.touched) {
+            <p class="text-xs text-red-300">Ingresa un monto.</p>
+          }
+          @if (form.controls.amount.hasError('min') && form.controls.amount.touched) {
+            <p class="text-xs text-red-300">El monto debe ser mayor a 0.</p>
+          }
+        </label>
+
+        <label class="grid gap-2 text-sm">
+          <span class="text-athlium-muted">Método de pago</span>
+          <select
+            class="ath-select appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            formControlName="paymentMethod"
+          >
+            @for (method of methodOptions; track method) {
+              <option [value]="method">{{ paymentMethodLabel(method) }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="grid gap-2 text-sm lg:col-span-2">
+          <span class="text-athlium-muted">Tokens para la actividad</span>
+          <input
+            type="number"
+            min="1"
+            step="1"
+            class="appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            formControlName="tokens"
+            placeholder="Ej: 10"
+          />
+          @if (form.controls.tokens.hasError('required') && form.controls.tokens.touched) {
+            <p class="text-xs text-red-300">Ingresa la cantidad de tokens.</p>
+          }
+          @if (form.controls.tokens.hasError('min') && form.controls.tokens.touched) {
+            <p class="text-xs text-red-300">Los tokens deben ser mayores a 0.</p>
+          }
+        </label>
+      </div>
+
+      <div class="mt-5 flex items-center gap-2">
+        <button
+          type="submit"
+          class="rounded-xl bg-athlium-primary px-4 py-2 font-semibold text-athlium-text transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45"
+          [disabled]="isSubmitting() || isLoadingCatalogs()"
+        >
+          {{ isSubmitting() ? 'Guardando...' : 'Registrar pago' }}
+        </button>
+        <button
+          type="button"
+          class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 px-4 py-2 font-semibold text-athlium-text transition hover:bg-athlium-surface-2/55"
+          (click)="closeForm()"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
+  }
+
+  <article
+    class="mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <h2 class="font-title text-xl font-semibold">Sede</h2>
+    <p class="mt-1 text-sm text-athlium-muted">Movimientos recientes de pagos.</p>
+
+    @if (paymentHistory().length) {
+      <div class="mt-4 grid gap-3">
+        @for (item of paymentHistory(); track item.paymentId) {
+          <article class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 p-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <p class="font-semibold">Pago #{{ item.paymentId }} - {{ item.userName }}</p>
+              <span
+                class="rounded-full border border-athlium-primary/20 bg-athlium-primary/10 px-2 py-1 text-xs"
+              >
+                {{ paymentMethodLabel(item.paymentMethod) }}
+              </span>
+            </div>
+            <p class="mt-1 text-sm text-athlium-muted">
+              ${{ item.amount }}
+              @if (item.activityName && item.tokens) {
+                | {{ item.activityName }} | {{ item.tokens }} tokens
+              }
+            </p>
+            <p class="mt-1 text-xs text-athlium-muted">Fecha de pago: {{ item.paidAt }}</p>
+          </article>
+        }
+      </div>
+    } @else {
+      <p class="mt-3 text-sm text-athlium-muted">Todavía no hay movimientos en esta sede.</p>
+    }
+  </article>
+</section>
