@@ -24,6 +24,7 @@ const MOCK_BOOKINGS: Booking[] = Array.from({ length: 180 }, (_, index) => ({
 export interface BookingsQuery {
   sessionId?: number;
   userId?: number;
+  status?: BookingStatus;
   page?: number;
   limit?: number;
   sort?: string;
@@ -106,6 +107,9 @@ export class BookingsApi {
           return false;
         }
         if (query.userId && item.userId !== query.userId) {
+          return false;
+        }
+        if (query.status && item.status !== query.status) {
           return false;
         }
         return true;

@@ -126,6 +126,10 @@ export class LoginPage {
         return '/org-owner/dashboard';
       case Role.ORG_ADMIN:
         return '/hq-admin/dashboard';
+      case Role.PROFESSOR:
+        return '/professor/dashboard';
+      case Role.CLIENT:
+        return '/client/dashboard';
       default:
         return '/dashboard';
     }

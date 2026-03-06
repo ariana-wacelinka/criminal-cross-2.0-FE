@@ -29,15 +29,18 @@ export class HomePage {
     switch (this.currentRole()) {
       case Role.CLIENT:
         return [
-          { label: 'Inicio', path: '/dashboard' },
-          { label: 'Mis clases', path: '/dashboard' },
-          { label: 'Mis paquetes', path: '/dashboard' },
+          { label: 'Inicio', path: '/client/dashboard' },
+          { label: 'Reservas', path: '/client/classes' },
+          { label: 'Entrenamientos', path: '/client/history' },
+          { label: 'Mis paquetes', path: '/client/packages' },
         ];
       case Role.PROFESSOR:
         return [
-          { label: 'Inicio', path: '/dashboard' },
-          { label: 'Mis sesiones', path: '/dashboard' },
-          { label: 'Asistencia', path: '/dashboard' },
+          { label: 'Inicio', path: '/professor/dashboard' },
+          { label: 'Usuarios', path: '/professor/users' },
+          { label: 'Actividades', path: '/headquarters/101/activities' },
+          { label: 'Horarios', path: '/professor/schedules' },
+          { label: 'Agenda', path: '/professor/agenda' },
         ];
       case Role.SUPERADMIN:
         return [
