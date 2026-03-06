@@ -163,7 +163,7 @@ export class SchedulesOpsPage {
       activeFrom: schedule.activeFrom ?? '',
       activeUntil: schedule.activeUntil ?? '',
     });
-    this.activityQuery.set(this.activityName(schedule.activityId));
+    this.activityQuery.set(this.activityName(schedule.activityId, schedule.activityName));
     this.showActivityOptions.set(false);
   }
 
@@ -274,7 +274,11 @@ export class SchedulesOpsPage {
     }
   }
 
-  protected activityName(activityId: number): string {
+  protected activityName(activityId: number, activityName?: string | null): string {
+    if (activityName?.trim()) {
+      return activityName;
+    }
+
     return (
       this.activitiesPage()?.content.find((activity) => activity.id === activityId)?.name ??
       `Actividad #${activityId}`

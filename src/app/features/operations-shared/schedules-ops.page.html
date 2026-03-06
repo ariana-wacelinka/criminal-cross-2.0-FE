@@ -279,7 +279,9 @@
               class="ath-reveal border-b border-athlium-primary/10 last:border-b-0"
               [style.animation-delay.ms]="i * 28"
             >
-              <td class="py-3 font-medium">{{ activityName(schedule.activityId) }}</td>
+              <td class="py-3 font-medium">
+                {{ activityName(schedule.activityId, schedule.activityName) }}
+              </td>
               <td class="py-3 text-athlium-muted">{{ formatWeekDays(schedule.weekDays) }}</td>
               <td class="py-3 text-athlium-muted">
                 {{ schedule.startTime }} · {{ schedule.durationMinutes }}m

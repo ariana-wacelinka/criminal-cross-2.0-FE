@@ -94,6 +94,7 @@ export interface ActivitySchedule {
   organizationId: number;
   headquartersId: number;
   activityId: number;
+  activityName?: string;
   dayOfWeek?: number;
   weekDays?: WeekDay[];
   startTime: IsoTime;
@@ -125,6 +126,7 @@ export interface SessionInstance {
   organizationId: number;
   headquartersId: number;
   activityId: number;
+  activityName?: string;
   startsAt: IsoInstant;
   endsAt: IsoInstant;
   status: SessionStatus;
@@ -139,6 +141,7 @@ export interface SessionInstance {
 
 export interface ClientPackageCredit {
   activityId: number;
+  activityName?: string;
   tokens: number;
 }
 

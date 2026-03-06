@@ -214,7 +214,11 @@ export class AgendaOpsPage {
     this.selectedSessionId.set(null);
   }
 
-  protected activityName(activityId: number): string {
+  protected activityName(activityId: number, activityName?: string | null): string {
+    if (activityName?.trim()) {
+      return activityName;
+    }
+
     return (
       this.activitiesCatalog().find((activity) => activity.id === activityId)?.name ??
       `Actividad #${activityId}`
