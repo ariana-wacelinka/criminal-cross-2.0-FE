@@ -80,7 +80,10 @@ export class SuperadminUserEditPage {
     let initialized = false;
     effect(() => {
       const currentUser = this.user();
-      if (!initialized && currentUser.id === this.userId) {
+      const isLoadingPlaceholder =
+        currentUser.name === 'Cargando' && currentUser.lastName === 'usuario';
+
+      if (!initialized && currentUser.id === this.userId && !isLoadingPlaceholder) {
         this.form.patchValue(
           {
             name: currentUser.name,

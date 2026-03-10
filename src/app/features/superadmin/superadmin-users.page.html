@@ -12,10 +12,16 @@
   <section
     class="mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-4 shadow-soft"
   >
-    <label class="grid gap-2 text-sm">
+    <label class="grid gap-2 text-sm" for="superadmin-user-search">
       <span class="text-athlium-muted">Buscar usuario</span>
       <input
+        id="superadmin-user-search"
+        name="superadminUserSearch"
         type="text"
+        autocomplete="off"
+        autocapitalize="off"
+        autocorrect="off"
+        spellcheck="false"
         [value]="searchQuery()"
         (input)="setSearchQuery($any($event.target).value)"
         placeholder="Nombre, apellido o email"
