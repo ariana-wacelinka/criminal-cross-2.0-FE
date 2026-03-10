@@ -2,6 +2,7 @@ import { CanActivateFn, CanMatchFn, Router, UrlTree } from '@angular/router';
 import { inject } from '@angular/core';
 import { AuthSessionService } from './auth-session.service';
 import { Role } from '../domain/models';
+import { ClientContextService } from '../client-context/client-context.service';
 
 export const authGuard: CanMatchFn = (): boolean | UrlTree => {
   const authSession = inject(AuthSessionService);
@@ -51,4 +52,21 @@ export const roleGuard: CanActivateFn = (route): boolean | UrlTree => {
     default:
       return router.createUrlTree(['/dashboard']);
   }
+};
+
+export const clientContextGuard: CanActivateFn = (): boolean | UrlTree => {
+  const authSession = inject(AuthSessionService);
+  const clientContext = inject(ClientContextService);
+  const router = inject(Router);
+
+  const user = authSession.user();
+  if (!user) {
+    return router.createUrlTree(['/login']);
+  }
+
+  if (!user.roles.includes(Role.CLIENT)) {
+    return true;
+  }
+
+  return clientContext.isComplete() ? true : router.createUrlTree(['/client/pre-onboarding']);
 };

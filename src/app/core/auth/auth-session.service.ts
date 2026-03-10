@@ -2,12 +2,14 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { AuthApi, AuthSessionResponse } from '../api/auth.api';
 import { AuthenticatedUser, AuthProvider, Role } from '../domain/models';
+import { API_MOCK_MODE } from '../http';
 import { AuthStorageService } from './auth-storage.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthSessionService {
   private readonly authApi = inject(AuthApi);
   private readonly authStorage = inject(AuthStorageService);
+  private readonly apiMockMode = inject(API_MOCK_MODE);
 
   private readonly userState = signal<AuthenticatedUser | null>(null);
   private readonly bootstrappedState = signal(false);
@@ -20,10 +22,14 @@ export class AuthSessionService {
   async bootstrap(): Promise<void> {
     const mockUser = this.authStorage.getMockUser();
 
-    if (mockUser) {
+    if (this.apiMockMode && mockUser) {
       this.userState.set(mockUser);
       this.bootstrappedState.set(true);
       return;
+    }
+
+    if (!this.apiMockMode && mockUser) {
+      this.authStorage.clearMockUser();
     }
 
     const token = this.authStorage.getAccessToken();
@@ -43,15 +49,18 @@ export class AuthSessionService {
     }
   }
 
-  async loginWithIdToken(idToken: string): Promise<void> {
-    const session = await firstValueFrom(this.authApi.login({ idToken }));
+  async loginWithCredentials(email: string, password: string): Promise<void> {
+    const session = await firstValueFrom(this.authApi.login({ email, password }));
     this.applySession(session);
   }
 
-  async registerWithIdToken(name: string, lastName: string, idToken: string): Promise<void> {
-    await firstValueFrom(this.authApi.verifyToken({ idToken }));
-    const user = await firstValueFrom(this.authApi.register({ name, lastName, idToken }));
-    this.userState.set(user);
+  async registerWithCredentials(
+    name: string,
+    lastName: string,
+    email: string,
+    password: string,
+  ): Promise<void> {
+    await firstValueFrom(this.authApi.register({ name, lastName, email, password }));
   }
 
   async refreshAccessToken(): Promise<string | null> {
@@ -107,11 +116,7 @@ export class AuthSessionService {
   }
 
   async logout(): Promise<void> {
-    try {
-      await firstValueFrom(this.authApi.logout());
-    } finally {
-      this.clearSession();
-    }
+    this.clearSession();
   }
 
   private applySession(session: AuthSessionResponse): void {
