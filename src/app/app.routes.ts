@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { guestGuard, authGuard, roleGuard } from './core/auth';
+import { guestGuard, authGuard, roleGuard, clientContextGuard } from './core/auth';
 import { Role } from './core/domain/models';
 
 const SUPERADMIN_OR_CLIENT = [Role.SUPERADMIN];
@@ -277,33 +277,39 @@ export const routes: Routes = [
         data: { scope: 'hq', roles: PROFESSOR_ONLY },
       },
       {
+        path: 'client/pre-onboarding',
+        loadComponent: () => import('./features/client').then((m) => m.ClientPreOnboardingPage),
+        canActivate: [roleGuard],
+        data: { roles: [Role.CLIENT] },
+      },
+      {
         path: 'client/dashboard',
         loadComponent: () => import('./features/client').then((m) => m.ClientClassesPage),
-        canActivate: [roleGuard],
+        canActivate: [roleGuard, clientContextGuard],
         data: { roles: [Role.CLIENT] },
       },
       {
         path: 'client/overview',
         loadComponent: () => import('./features/client').then((m) => m.ClientPage),
-        canActivate: [roleGuard],
+        canActivate: [roleGuard, clientContextGuard],
         data: { roles: [Role.CLIENT] },
       },
       {
         path: 'client/classes',
         loadComponent: () => import('./features/client').then((m) => m.ClientClassesPage),
-        canActivate: [roleGuard],
+        canActivate: [roleGuard, clientContextGuard],
         data: { roles: [Role.CLIENT] },
       },
       {
         path: 'client/history',
         loadComponent: () => import('./features/client').then((m) => m.ClientHistoryPage),
-        canActivate: [roleGuard],
+        canActivate: [roleGuard, clientContextGuard],
         data: { roles: [Role.CLIENT] },
       },
       {
         path: 'client/packages',
         loadComponent: () => import('./features/client').then((m) => m.ClientPackagesPage),
-        canActivate: [roleGuard],
+        canActivate: [roleGuard, clientContextGuard],
         data: { roles: [Role.CLIENT] },
       },
     ],

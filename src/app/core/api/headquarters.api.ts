@@ -37,6 +37,36 @@ function unwrapApiResponse<T>(response: ApiResponse<T> | T): T {
   return response as T;
 }
 
+function normalizeHeadquartersPage(
+  response: PageResult<Headquarters> | Headquarters[],
+  page: number,
+  size: number,
+  organizationId?: number,
+): PageResult<Headquarters> {
+  const safePage = Math.max(0, page);
+  const safeSize = Math.max(1, size);
+
+  if (Array.isArray(response)) {
+    const source = organizationId
+      ? response.filter((headquarters) => headquarters.organizationId === organizationId)
+      : response;
+    const start = safePage * safeSize;
+    return {
+      items: source.slice(start, start + safeSize),
+      total: source.length,
+      page: safePage,
+      size: safeSize,
+    };
+  }
+
+  return {
+    items: response.items ?? [],
+    total: response.total ?? 0,
+    page: response.page ?? safePage,
+    size: response.size ?? safeSize,
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class HeadquartersApi {
   private readonly http = inject(HttpClient);
@@ -65,13 +95,17 @@ export class HeadquartersApi {
     }
 
     return this.http
-      .get<ApiResponse<PageResult<Headquarters>> | PageResult<Headquarters>>(
-        `${this.baseUrl}/headquarters`,
-        {
-          params: toHttpParams({ page, size, organizationId }),
-        },
-      )
-      .pipe(map(unwrapApiResponse));
+      .get<
+        | ApiResponse<PageResult<Headquarters> | Headquarters[]>
+        | PageResult<Headquarters>
+        | Headquarters[]
+      >(`${this.baseUrl}/headquarters`, {
+        params: toHttpParams({ page, size, organizationId }),
+      })
+      .pipe(
+        map(unwrapApiResponse),
+        map((response) => normalizeHeadquartersPage(response, page, size, organizationId)),
+      );
   }
 
   getAll(organizationId?: number): Observable<Headquarters[]> {

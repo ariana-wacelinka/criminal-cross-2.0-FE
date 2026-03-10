@@ -62,6 +62,13 @@ export interface UpdateUserRequest {
   lastName: string;
 }
 
+interface BackendUsersPage<T> {
+  content?: T[];
+  page?: number;
+  size?: number;
+  totalElements?: number;
+}
+
 function buildMockFirebaseUid(email: string): string {
   const normalized = email
     .toLowerCase()
@@ -113,11 +120,26 @@ function toBackendPage(page: number): number {
   return Math.max(1, page + 1);
 }
 
-function fromBackendPage<T>(pageResult: PageResult<T>): PageResult<T> {
-  const backendPage = Number.isFinite(pageResult.page) ? pageResult.page : 1;
+function normalizeUsersPage(
+  pageResult: PageResult<User> | BackendUsersPage<User>,
+): PageResult<User> {
+  const asPage = pageResult as PageResult<User>;
+  const asBackendPage = pageResult as BackendUsersPage<User>;
+
+  const items = Array.isArray(asPage.items)
+    ? asPage.items
+    : Array.isArray(asBackendPage.content)
+      ? asBackendPage.content
+      : [];
+  const totalCandidate = asPage.total ?? asBackendPage.totalElements ?? items.length;
+  const pageCandidate = pageResult.page ?? 0;
+  const sizeCandidate = pageResult.size ?? 20;
+
   return {
-    ...pageResult,
-    page: Math.max(0, backendPage - 1),
+    items,
+    total: Number.isFinite(totalCandidate) ? Math.max(0, totalCandidate) : items.length,
+    page: Number.isFinite(pageCandidate) ? Math.max(0, pageCandidate) : 0,
+    size: Number.isFinite(sizeCandidate) ? Math.max(1, sizeCandidate) : 20,
   };
 }
 
@@ -133,10 +155,14 @@ export class UsersApi {
     }
 
     return this.http
-      .get<ApiResponse<PageResult<User>> | PageResult<User>>(`${this.baseUrl}/users`, {
+      .get<
+        | ApiResponse<PageResult<User> | BackendUsersPage<User>>
+        | PageResult<User>
+        | BackendUsersPage<User>
+      >(`${this.baseUrl}/users`, {
         params: toHttpParams({ page: toBackendPage(page), size, search }),
       })
-      .pipe(map(unwrapApiResponse), map(fromBackendPage));
+      .pipe(map(unwrapApiResponse), map(normalizeUsersPage));
   }
 
   getUsersByOrg(
@@ -154,10 +180,14 @@ export class UsersApi {
     }
 
     return this.http
-      .get<ApiResponse<PageResult<User>> | PageResult<User>>(`${this.baseUrl}/users`, {
+      .get<
+        | ApiResponse<PageResult<User> | BackendUsersPage<User>>
+        | PageResult<User>
+        | BackendUsersPage<User>
+      >(`${this.baseUrl}/users`, {
         params: toHttpParams({ organizationId, page: toBackendPage(page), size, search }),
       })
-      .pipe(map(unwrapApiResponse), map(fromBackendPage));
+      .pipe(map(unwrapApiResponse), map(normalizeUsersPage));
   }
 
   getUsersByHq(
@@ -175,10 +205,14 @@ export class UsersApi {
     }
 
     return this.http
-      .get<ApiResponse<PageResult<User>> | PageResult<User>>(`${this.baseUrl}/users`, {
+      .get<
+        | ApiResponse<PageResult<User> | BackendUsersPage<User>>
+        | PageResult<User>
+        | BackendUsersPage<User>
+      >(`${this.baseUrl}/users`, {
         params: toHttpParams({ headquartersId, page: toBackendPage(page), size, search }),
       })
-      .pipe(map(unwrapApiResponse), map(fromBackendPage));
+      .pipe(map(unwrapApiResponse), map(normalizeUsersPage));
   }
 
   getAllUsers(): Observable<User[]> {
@@ -276,6 +310,32 @@ export class UsersApi {
 
     return this.http
       .put<ApiResponse<User> | User>(`${this.baseUrl}/users/${userId}`, body)
+      .pipe(map(unwrapApiResponse));
+  }
+
+  assignToHeadquarters(firebaseUid: string, headquartersId: number): Observable<User> {
+    if (this.apiMockMode) {
+      const index = MOCK_USERS.findIndex((user) => user.firebaseUid === firebaseUid);
+      const previous = index >= 0 ? MOCK_USERS[index] : null;
+      if (!previous) {
+        return of({
+          id: Date.now(),
+          firebaseUid,
+          email: `${firebaseUid}@athlium.app`,
+          name: 'Usuario',
+          lastName: 'Mock',
+          roles: [Role.CLIENT],
+          active: true,
+        });
+      }
+
+      return of(previous);
+    }
+
+    return this.http
+      .post<
+        ApiResponse<User> | User
+      >(`${this.baseUrl}/users/firebase/${encodeURIComponent(firebaseUid)}/headquarters/${headquartersId}`, {})
       .pipe(map(unwrapApiResponse));
   }
 

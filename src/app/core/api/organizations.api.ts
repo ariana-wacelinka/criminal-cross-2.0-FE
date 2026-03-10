@@ -44,6 +44,32 @@ function unwrapApiResponse<T>(response: ApiResponse<T> | T): T {
   return response as T;
 }
 
+function normalizeOrganizationsPage(
+  response: PageResult<Organization> | Organization[],
+  page: number,
+  size: number,
+): PageResult<Organization> {
+  const safePage = Math.max(0, page);
+  const safeSize = Math.max(1, size);
+
+  if (Array.isArray(response)) {
+    const start = safePage * safeSize;
+    return {
+      items: response.slice(start, start + safeSize),
+      total: response.length,
+      page: safePage,
+      size: safeSize,
+    };
+  }
+
+  return {
+    items: response.items ?? [],
+    total: response.total ?? 0,
+    page: response.page ?? safePage,
+    size: response.size ?? safeSize,
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class OrganizationsApi {
   private readonly http = inject(HttpClient);
@@ -65,13 +91,17 @@ export class OrganizationsApi {
     }
 
     return this.http
-      .get<ApiResponse<PageResult<Organization>> | PageResult<Organization>>(
-        `${this.baseUrl}/organizations`,
-        {
-          params: toHttpParams({ page, size }),
-        },
-      )
-      .pipe(map(unwrapApiResponse));
+      .get<
+        | ApiResponse<PageResult<Organization> | Organization[]>
+        | PageResult<Organization>
+        | Organization[]
+      >(`${this.baseUrl}/organizations`, {
+        params: toHttpParams({ page, size }),
+      })
+      .pipe(
+        map(unwrapApiResponse),
+        map((response) => normalizeOrganizationsPage(response, page, size)),
+      );
   }
 
   getAll(): Observable<Organization[]> {
