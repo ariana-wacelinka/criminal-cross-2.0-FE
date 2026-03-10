@@ -1,0 +1,91 @@
+<section class="px-4 py-6 text-athlium-text lg:px-8">
+  <div class="fixed inset-0 z-30 bg-athlium-bg/75 backdrop-blur-sm"></div>
+
+  <article
+    class="relative z-40 mx-auto mt-8 w-full max-w-2xl rounded-panel border border-athlium-primary/12 bg-athlium-surface/95 p-6 shadow-soft"
+  >
+    @if (step() === 'organization') {
+      <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Bienvenido</p>
+      <h1 class="mt-2 font-title text-3xl font-semibold">Elegi tu organizacion</h1>
+      <p class="mt-1 text-sm text-athlium-muted">
+        Para continuar, decinos en que organización vas a entrenar.
+      </p>
+
+      <div class="mt-5 grid gap-2 sm:grid-cols-2">
+        @for (organization of organizations(); track organization.id) {
+          <button
+            type="button"
+            class="rounded-xl border px-4 py-3 text-left text-sm font-semibold transition"
+            [class.border-athlium-primary/40]="selectedOrganizationId() === organization.id"
+            [class.bg-athlium-primary/20]="selectedOrganizationId() === organization.id"
+            [class.border-athlium-primary/12]="selectedOrganizationId() !== organization.id"
+            [class.text-athlium-muted]="selectedOrganizationId() !== organization.id"
+            (click)="selectOrganization(organization.id)"
+          >
+            {{ organization.name }}
+          </button>
+        }
+      </div>
+
+      <div class="mt-6 flex justify-end">
+        <button
+          type="button"
+          class="rounded-xl bg-athlium-primary px-4 py-2 font-semibold text-athlium-text transition enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+          [disabled]="!canContinueOrganization()"
+          (click)="continueToHeadquarters()"
+        >
+          Continuar
+        </button>
+      </div>
+    } @else {
+      <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">
+        Paso 2 de 2
+      </p>
+      <h1 class="mt-2 font-title text-3xl font-semibold">Ahora elegi tu sede</h1>
+      <p class="mt-1 text-sm text-athlium-muted">
+        Organización seleccionada: {{ selectedOrganizationName() }}.
+      </p>
+
+      <div class="mt-5 grid gap-2">
+        @for (headquarter of headquarters(); track headquarter.id) {
+          <button
+            type="button"
+            class="rounded-xl border px-4 py-3 text-left text-sm font-semibold transition"
+            [class.border-athlium-primary/40]="selectedHeadquartersId() === headquarter.id"
+            [class.bg-athlium-primary/20]="selectedHeadquartersId() === headquarter.id"
+            [class.border-athlium-primary/12]="selectedHeadquartersId() !== headquarter.id"
+            [class.text-athlium-muted]="selectedHeadquartersId() !== headquarter.id"
+            (click)="selectHeadquarters(headquarter.id)"
+          >
+            {{ headquarter.name }}
+          </button>
+        } @empty {
+          <p
+            class="rounded-xl border border-athlium-primary/12 px-4 py-3 text-sm text-athlium-muted"
+          >
+            No hay sedes disponibles para esta organización.
+          </p>
+        }
+      </div>
+
+      <div class="mt-6 flex items-center justify-between">
+        <button
+          type="button"
+          class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 px-4 py-2 font-semibold text-athlium-text transition hover:bg-athlium-surface-2/55"
+          (click)="backToOrganization()"
+        >
+          Volver
+        </button>
+
+        <button
+          type="button"
+          class="rounded-xl bg-athlium-primary px-4 py-2 font-semibold text-athlium-text transition enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+          [disabled]="!canConfirmHeadquarters()"
+          (click)="confirmSelection()"
+        >
+          Ir a mis reservas
+        </button>
+      </div>
+    }
+  </article>
+</section>
