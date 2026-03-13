@@ -41,36 +41,25 @@
       {{
         mode() === 'login'
           ? 'Ingresa con email y contraseña'
-          : 'Registro demo para probar el flujo de roles'
+          : 'Completá tus datos para crear la cuenta'
       }}
     </p>
 
     @if (errorMessage()) {
       <p
-        class="mt-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200"
+        class="mt-4 rounded-lg border px-3 py-2 text-sm"
+        [class.border-red-500/40]="feedbackTone() === 'error'"
+        [class.bg-red-500/10]="feedbackTone() === 'error'"
+        [class.text-red-200]="feedbackTone() === 'error'"
+        [class.border-emerald-500/40]="feedbackTone() === 'success'"
+        [class.bg-emerald-500/10]="feedbackTone() === 'success'"
+        [class.text-emerald-100]="feedbackTone() === 'success'"
       >
         {{ errorMessage() }}
       </p>
     }
 
     <form class="mt-4 grid gap-3" [formGroup]="form" (ngSubmit)="submit()">
-      <div class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/65 p-1">
-        <div class="grid grid-cols-2 gap-1">
-          @for (role of roles; track role.value) {
-            <button
-              type="button"
-              class="rounded-lg px-2 py-2 text-xs font-semibold transition"
-              [class.bg-athlium-primary]="form.controls.role.value === role.value"
-              [class.text-white]="form.controls.role.value === role.value"
-              [class.text-athlium-muted]="form.controls.role.value !== role.value"
-              (click)="form.controls.role.setValue(role.value)"
-            >
-              {{ role.label }}
-            </button>
-          }
-        </div>
-      </div>
-
       @if (mode() === 'register') {
         <div class="grid gap-3 sm:grid-cols-2">
           <label class="grid min-w-0 gap-1.5">
@@ -113,12 +102,15 @@
 
       <label class="grid min-w-0 gap-1.5">
         <input
+          id="login-email"
+          name="email"
           class="w-full appearance-none rounded-xl border bg-athlium-primary-soft/65 px-3 py-2 text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
           [class.border-red-400/45]="form.controls.email.invalid && form.controls.email.touched"
           [class.border-athlium-primary/15]="
             !(form.controls.email.invalid && form.controls.email.touched)
           "
           type="email"
+          autocomplete="username"
           placeholder="Email"
           formControlName="email"
         />
@@ -131,18 +123,33 @@
       </label>
 
       <label class="grid min-w-0 gap-1.5">
-        <input
-          class="w-full appearance-none rounded-xl border bg-athlium-primary-soft/65 px-3 py-2 text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
-          [class.border-red-400/45]="
-            form.controls.password.invalid && form.controls.password.touched
-          "
-          [class.border-athlium-primary/15]="
-            !(form.controls.password.invalid && form.controls.password.touched)
-          "
-          type="password"
-          placeholder="Contraseña"
-          formControlName="password"
-        />
+        <div class="relative">
+          <input
+            id="login-password"
+            name="password"
+            class="w-full appearance-none rounded-xl border bg-athlium-primary-soft/65 px-3 py-2 pr-20 text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            [class.border-red-400/45]="
+              form.controls.password.invalid && form.controls.password.touched
+            "
+            [class.border-athlium-primary/15]="
+              !(form.controls.password.invalid && form.controls.password.touched)
+            "
+            [type]="showPassword() ? 'text' : 'password'"
+            [autocomplete]="mode() === 'login' ? 'current-password' : 'new-password'"
+            placeholder="Contraseña"
+            formControlName="password"
+          />
+          <button
+            type="button"
+            class="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-athlium-muted transition hover:text-athlium-text"
+            [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+            (click)="togglePasswordVisibility()"
+          >
+            <span class="material-symbols-outlined text-[18px] leading-none">
+              {{ showPassword() ? 'visibility_off' : 'visibility' }}
+            </span>
+          </button>
+        </div>
         @if (form.controls.password.hasError('required') && form.controls.password.touched) {
           <p class="text-xs text-red-300">Ingresa tu contraseña.</p>
         }

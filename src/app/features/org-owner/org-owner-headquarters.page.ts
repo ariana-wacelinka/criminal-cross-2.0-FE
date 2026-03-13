@@ -1,8 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
-import { switchMap } from 'rxjs';
+import { firstValueFrom, of, switchMap } from 'rxjs';
 import { HeadquartersApi } from '../../core/api/headquarters.api';
 import { Headquarters } from '../../core/domain/models';
 import { UiToastService } from '../../core/ui/toast.service';
@@ -18,7 +17,12 @@ export class OrgOwnerHeadquartersPage {
   private readonly headquartersApi = inject(HeadquartersApi);
   private readonly toast = inject(UiToastService);
 
-  private readonly organizationId = 1;
+  private readonly ownerHeadquarters = toSignal(this.headquartersApi.getAll(), {
+    initialValue: [],
+  });
+  private readonly organizationId = computed(
+    () => this.ownerHeadquarters()[0]?.organizationId ?? null,
+  );
   protected readonly currentPage = signal(0);
   protected readonly pageSize = 10;
   private readonly refreshTick = signal(0);
@@ -30,11 +34,15 @@ export class OrgOwnerHeadquartersPage {
       computed(() => ({
         page: this.currentPage(),
         tick: this.refreshTick(),
+        organizationId: this.organizationId(),
       })),
     ).pipe(
-      switchMap(({ page }) =>
-        this.headquartersApi.getPage(page, this.pageSize, this.organizationId),
-      ),
+      switchMap(({ page, organizationId }) => {
+        if (!organizationId) {
+          return of({ items: [], total: 0, page: 0, size: this.pageSize });
+        }
+        return this.headquartersApi.getPage(page, this.pageSize, organizationId);
+      }),
     ),
     { initialValue: null },
   );

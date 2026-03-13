@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { of, switchMap } from 'rxjs';
 import { HeadquartersApi } from '../../core/api/headquarters.api';
 import { OrganizationsApi } from '../../core/api/organizations.api';
 import { UsersApi } from '../../core/api/users.api';
@@ -16,16 +17,43 @@ export class OrgOwnerPage {
   private readonly headquartersApi = inject(HeadquartersApi);
   private readonly usersApi = inject(UsersApi);
 
-  private readonly organizationId = 1;
-
-  protected readonly organization = toSignal(this.organizationsApi.getById(this.organizationId), {
-    initialValue: { id: this.organizationId, name: 'Organización' },
+  private readonly ownerHeadquarters = toSignal(this.headquartersApi.getAll(), {
+    initialValue: [],
   });
+  private readonly organizationId = computed(
+    () => this.ownerHeadquarters()[0]?.organizationId ?? null,
+  );
+
+  protected readonly organization = toSignal(
+    toObservable(this.organizationId).pipe(
+      switchMap((organizationId) =>
+        organizationId
+          ? this.organizationsApi.getById(organizationId)
+          : of({ id: 0, name: 'Organización' }),
+      ),
+    ),
+    { initialValue: { id: 0, name: 'Organización' } },
+  );
   protected readonly headquartersPage = toSignal(
-    this.headquartersApi.getPage(0, 6, this.organizationId),
+    toObservable(this.organizationId).pipe(
+      switchMap((organizationId) =>
+        organizationId
+          ? this.headquartersApi.getPage(0, 6, organizationId)
+          : of({ items: [], total: 0, page: 0, size: 6 }),
+      ),
+    ),
     { initialValue: null },
   );
-  protected readonly usersPage = toSignal(this.usersApi.getPage(0, 12), { initialValue: null });
+  protected readonly usersPage = toSignal(
+    toObservable(this.organizationId).pipe(
+      switchMap((organizationId) =>
+        organizationId
+          ? this.usersApi.getUsersByOrg(organizationId, 0, 12)
+          : of({ items: [], total: 0, page: 0, size: 12 }),
+      ),
+    ),
+    { initialValue: null },
+  );
 
   protected readonly isLoading = computed(() => !this.headquartersPage() || !this.usersPage());
   protected readonly headquarters = computed(() => this.headquartersPage()?.items ?? []);

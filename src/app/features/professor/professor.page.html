@@ -1,0 +1,54 @@
+<section class="px-4 py-6 text-athlium-text lg:px-8">
+  <header
+    class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Profesor</p>
+    <h1 class="mt-2 font-title text-3xl font-semibold">Panel de sede</h1>
+    <p class="mt-1 text-sm text-athlium-muted">Vista de control rápido para la operación diaria.</p>
+  </header>
+
+  <section class="mt-5 grid gap-3 sm:grid-cols-2">
+    <article
+      class="rounded-xl border border-athlium-primary/12 bg-athlium-surface/90 p-4 shadow-soft"
+    >
+      <p class="text-xs uppercase tracking-[0.14em] text-athlium-muted">Usuarios sede</p>
+      <p class="mt-2 font-title text-3xl font-semibold">{{ usersCount() }}</p>
+    </article>
+    <article
+      class="rounded-xl border border-athlium-primary/12 bg-athlium-surface/90 p-4 shadow-soft"
+    >
+      <p class="text-xs uppercase tracking-[0.14em] text-athlium-muted">Actividades</p>
+      <p class="mt-2 font-title text-3xl font-semibold">{{ activitiesCount() }}</p>
+    </article>
+  </section>
+
+  <article
+    class="ath-reveal mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <h2 class="font-title text-xl font-semibold">Accesos rápidos</h2>
+    <p class="mt-1 text-sm text-athlium-muted">
+      Entradas directas a las tareas que más usa el profesor.
+    </p>
+
+    <div class="mt-4 grid gap-3 md:grid-cols-2">
+      @for (item of quickLinks(); track item.path) {
+        <a
+          class="group rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 p-4 transition hover:border-athlium-primary/28 hover:bg-athlium-primary-soft/25"
+          [routerLink]="item.path"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="font-semibold">{{ item.title }}</p>
+              <p class="mt-1 text-sm text-athlium-muted">{{ item.description }}</p>
+            </div>
+            <span
+              class="material-symbols-outlined text-athlium-muted transition group-hover:text-athlium-text"
+            >
+              {{ item.icon }}
+            </span>
+          </div>
+        </a>
+      }
+    </div>
+  </article>
+</section>

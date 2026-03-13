@@ -39,13 +39,14 @@ export class SuperadminHeadquartersPage {
     { initialValue: null },
   );
   protected readonly organizations = toSignal(this.organizationsApi.getAll(), { initialValue: [] });
+  protected readonly headquarters = computed(() => this.headquartersPage()?.items ?? []);
   protected readonly openHeadquartersMenuId = signal<number | null>(null);
   protected readonly deletingHeadquarters = signal<Headquarters | null>(null);
   protected readonly credentialEmail = signal('');
   protected readonly credentialPassword = signal('');
   protected readonly deleteError = signal<string | null>(null);
   protected readonly isLoading = computed(() => !this.headquartersPage());
-  protected readonly hasItems = computed(() => (this.headquartersPage()?.items.length ?? 0) > 0);
+  protected readonly hasItems = computed(() => this.headquarters().length > 0);
   protected readonly totalPages = computed(() => {
     const total = this.headquartersPage()?.total ?? 0;
     const size = this.headquartersPage()?.size ?? this.pageSize;
@@ -55,7 +56,7 @@ export class SuperadminHeadquartersPage {
   protected readonly canGoNext = computed(() => this.currentPage() < this.totalPages() - 1);
 
   protected readonly headquartersView = computed(() =>
-    (this.headquartersPage()?.items ?? []).map((hq) => ({
+    this.headquarters().map((hq) => ({
       ...hq,
       organizationName:
         this.organizations().find((organization) => organization.id === hq.organizationId)?.name ??
@@ -165,7 +166,7 @@ export class SuperadminHeadquartersPage {
       await firstValueFrom(this.headquartersApi.remove(selected.id));
 
       const pageAfterDelete = this.headquartersPage();
-      const isLastItemOnPage = !!pageAfterDelete && pageAfterDelete.items.length === 1;
+      const isLastItemOnPage = !!pageAfterDelete && (pageAfterDelete.items?.length ?? 0) === 1;
       if (isLastItemOnPage && this.currentPage() > 0) {
         this.currentPage.update((page) => page - 1);
       }

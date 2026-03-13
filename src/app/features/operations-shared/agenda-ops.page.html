@@ -19,7 +19,7 @@
             [value]="selectedHeadquartersId()"
             (change)="onHeadquartersChange($any($event.target).value)"
           >
-            @for (headquarters of headquartersPage()?.items ?? []; track headquarters.id) {
+            @for (headquarters of headquarters(); track headquarters.id) {
               <option [value]="headquarters.id">{{ headquarters.name }}</option>
             }
           </select>
@@ -76,7 +76,7 @@
               <span
                 class="inline-flex rounded-full border border-athlium-primary/20 bg-athlium-primary-soft/35 px-2.5 py-1 text-xs font-semibold"
               >
-                {{ activityName(session.activityId) }}
+                {{ activityName(session.activityId, session.activityName) }}
               </span>
             </div>
             <div class="text-xs text-athlium-muted">
@@ -161,7 +161,9 @@
           </div>
           <div>
             <p class="text-athlium-muted">Actividad</p>
-            <p class="mt-1 font-semibold">{{ activityName(session.activityId) }}</p>
+            <p class="mt-1 font-semibold">
+              {{ activityName(session.activityId, session.activityName) }}
+            </p>
           </div>
           <div>
             <p class="text-athlium-muted">Cupos</p>

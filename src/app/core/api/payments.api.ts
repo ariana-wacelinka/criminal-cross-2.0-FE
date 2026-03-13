@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { map, Observable, of } from 'rxjs';
+import { map, Observable, of, shareReplay, tap } from 'rxjs';
 import { ApiResponse, PageResult, Payment, PaymentMethod } from '../domain/models';
 import { API_BASE_URL } from '../http/api-base-url.token';
 import { API_MOCK_MODE } from '../http';
@@ -128,6 +128,17 @@ export class PaymentsApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
   private readonly apiMockMode = inject(API_MOCK_MODE);
+  private readonly byHqCache = new Map<string, Observable<PageResult<PaymentListItem>>>();
+  private readonly byOrgCache = new Map<string, Observable<PageResult<PaymentListItem>>>();
+  private readonly pageCache = new Map<string, Observable<PageResult<Payment>>>();
+  private allCache: Observable<Payment[]> | null = null;
+
+  private invalidateCaches(): void {
+    this.byHqCache.clear();
+    this.byOrgCache.clear();
+    this.pageCache.clear();
+    this.allCache = null;
+  }
 
   getAllByHq(
     headquartersId: number,
@@ -144,14 +155,22 @@ export class PaymentsApi {
       );
     }
 
-    return this.http
+    const key = `${headquartersId}|${page}|${size}`;
+    const cached = this.byHqCache.get(key);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.http
       .get<ApiResponse<PageResult<PaymentListItem>> | PageResult<PaymentListItem>>(
         `${this.baseUrl}/payments`,
         {
           params: toHttpParams({ headquartersId, page: toBackendPage(page), size }),
         },
       )
-      .pipe(map(unwrapApiResponse), map(fromBackendPage));
+      .pipe(map(unwrapApiResponse), map(fromBackendPage), shareReplay(1));
+    this.byHqCache.set(key, request$);
+    return request$;
   }
 
   getAllByOrg(
@@ -169,14 +188,22 @@ export class PaymentsApi {
       );
     }
 
-    return this.http
+    const key = `${organizationId}|${page}|${size}`;
+    const cached = this.byOrgCache.get(key);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.http
       .get<ApiResponse<PageResult<PaymentListItem>> | PageResult<PaymentListItem>>(
         `${this.baseUrl}/payments`,
         {
           params: toHttpParams({ organizationId, page: toBackendPage(page), size }),
         },
       )
-      .pipe(map(unwrapApiResponse), map(fromBackendPage));
+      .pipe(map(unwrapApiResponse), map(fromBackendPage), shareReplay(1));
+    this.byOrgCache.set(key, request$);
+    return request$;
   }
 
   getPage(page: number, size: number): Observable<PageResult<Payment>> {
@@ -184,11 +211,19 @@ export class PaymentsApi {
       return of(slicePage(MOCK_PAYMENTS, page, size));
     }
 
-    return this.http
+    const key = `${page}|${size}`;
+    const cached = this.pageCache.get(key);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.http
       .get<ApiResponse<PageResult<Payment>> | PageResult<Payment>>(`${this.baseUrl}/payments`, {
         params: toHttpParams({ page, size }),
       })
-      .pipe(map(unwrapApiResponse));
+      .pipe(map(unwrapApiResponse), shareReplay(1));
+    this.pageCache.set(key, request$);
+    return request$;
   }
 
   getAll(): Observable<Payment[]> {
@@ -196,9 +231,15 @@ export class PaymentsApi {
       return of(MOCK_PAYMENTS);
     }
 
-    return this.http
+    if (this.allCache) {
+      return this.allCache;
+    }
+
+    const request$ = this.http
       .get<ApiResponse<Payment[]> | Payment[]>(`${this.baseUrl}/payments`)
-      .pipe(map(unwrapApiResponse));
+      .pipe(map(unwrapApiResponse), shareReplay(1));
+    this.allCache = request$;
+    return request$;
   }
 
   create(body: CreatePaymentRequest): Observable<Payment> {
@@ -225,8 +266,9 @@ export class PaymentsApi {
       return of(created);
     }
 
-    return this.http
-      .post<ApiResponse<Payment> | Payment>(`${this.baseUrl}/payments`, body)
-      .pipe(map(unwrapApiResponse));
+    return this.http.post<ApiResponse<Payment> | Payment>(`${this.baseUrl}/payments`, body).pipe(
+      map(unwrapApiResponse),
+      tap(() => this.invalidateCaches()),
+    );
   }
 }

@@ -1,10 +1,9 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { map, Observable, of } from 'rxjs';
 import { ApiResponse, Booking, BookingPageResponse, BookingStatus } from '../domain/models';
 import { API_BASE_URL } from '../http/api-base-url.token';
 import { API_MOCK_MODE } from '../http';
-import { createIdempotencyKey } from '../http/idempotency-key.util';
 import { toHttpParams } from '../http/http-params.util';
 
 const MOCK_BOOKINGS: Booking[] = Array.from({ length: 180 }, (_, index) => ({
@@ -24,6 +23,7 @@ const MOCK_BOOKINGS: Booking[] = Array.from({ length: 180 }, (_, index) => ({
 export interface BookingsQuery {
   sessionId?: number;
   userId?: number;
+  status?: BookingStatus;
   page?: number;
   limit?: number;
   sort?: string;
@@ -36,17 +36,20 @@ function unwrapApiResponse<T>(response: ApiResponse<T> | T): T {
   return response as T;
 }
 
+function toBackendPage(page: number | undefined): number | undefined {
+  if (page === undefined || page === null) {
+    return undefined;
+  }
+  return Math.max(1, page + 1);
+}
+
 @Injectable({ providedIn: 'root' })
 export class BookingsApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
   private readonly apiMockMode = inject(API_MOCK_MODE);
 
-  create(
-    sessionId: number,
-    userId?: number,
-    idempotencyKey = createIdempotencyKey(),
-  ): Observable<Booking> {
+  create(sessionId: number, userId?: number): Observable<Booking> {
     if (this.apiMockMode) {
       const created: Booking = {
         id: Date.now(),
@@ -61,17 +64,13 @@ export class BookingsApi {
     }
 
     return this.http
-      .post<ApiResponse<Booking> | Booking>(
-        `${this.baseUrl}/sessions/${sessionId}/bookings`,
-        userId ? { userId } : null,
-        {
-          headers: new HttpHeaders({ 'Idempotency-Key': idempotencyKey }),
-        },
-      )
+      .post<
+        ApiResponse<Booking> | Booking
+      >(`${this.baseUrl}/sessions/${sessionId}/bookings`, userId ? { userId } : null)
       .pipe(map(unwrapApiResponse));
   }
 
-  cancel(bookingId: number, idempotencyKey = createIdempotencyKey()): Observable<Booking> {
+  cancel(bookingId: number): Observable<Booking> {
     if (this.apiMockMode) {
       const index = MOCK_BOOKINGS.findIndex((item) => item.id === bookingId);
       const previous = index >= 0 ? MOCK_BOOKINGS[index] : undefined;
@@ -91,9 +90,7 @@ export class BookingsApi {
     }
 
     return this.http
-      .post<ApiResponse<Booking> | Booking>(`${this.baseUrl}/bookings/${bookingId}/cancel`, null, {
-        headers: new HttpHeaders({ 'Idempotency-Key': idempotencyKey }),
-      })
+      .post<ApiResponse<Booking> | Booking>(`${this.baseUrl}/bookings/${bookingId}/cancel`, null)
       .pipe(map(unwrapApiResponse));
   }
 
@@ -106,6 +103,9 @@ export class BookingsApi {
           return false;
         }
         if (query.userId && item.userId !== query.userId) {
+          return false;
+        }
+        if (query.status && item.status !== query.status) {
           return false;
         }
         return true;
@@ -122,7 +122,7 @@ export class BookingsApi {
 
     return this.http
       .get<ApiResponse<BookingPageResponse> | BookingPageResponse>(`${this.baseUrl}/bookings`, {
-        params: toHttpParams(query),
+        params: toHttpParams({ ...query, page: toBackendPage(query.page) }),
       })
       .pipe(map(unwrapApiResponse));
   }

@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { map, Observable, of } from 'rxjs';
+import { map, Observable, of, shareReplay, tap } from 'rxjs';
 import { ApiResponse, Headquarters, PageResult } from '../domain/models';
 import { API_BASE_URL } from '../http/api-base-url.token';
 import { API_MOCK_MODE } from '../http';
@@ -37,11 +37,50 @@ function unwrapApiResponse<T>(response: ApiResponse<T> | T): T {
   return response as T;
 }
 
+function normalizeHeadquartersPage(
+  response: PageResult<Headquarters> | Headquarters[],
+  page: number,
+  size: number,
+  organizationId?: number,
+): PageResult<Headquarters> {
+  const safePage = Math.max(0, page);
+  const safeSize = Math.max(1, size);
+
+  if (Array.isArray(response)) {
+    const source = organizationId
+      ? response.filter((headquarters) => headquarters.organizationId === organizationId)
+      : response;
+    const start = safePage * safeSize;
+    return {
+      items: source.slice(start, start + safeSize),
+      total: source.length,
+      page: safePage,
+      size: safeSize,
+    };
+  }
+
+  return {
+    items: response.items ?? [],
+    total: response.total ?? 0,
+    page: response.page ?? safePage,
+    size: response.size ?? safeSize,
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class HeadquartersApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
   private readonly apiMockMode = inject(API_MOCK_MODE);
+  private readonly pageCache = new Map<string, Observable<PageResult<Headquarters>>>();
+  private readonly allCache = new Map<string, Observable<Headquarters[]>>();
+  private readonly byIdCache = new Map<number, Observable<Headquarters>>();
+
+  private invalidateCaches(): void {
+    this.pageCache.clear();
+    this.allCache.clear();
+    this.byIdCache.clear();
+  }
 
   getPage(
     page: number,
@@ -64,14 +103,27 @@ export class HeadquartersApi {
       });
     }
 
-    return this.http
-      .get<ApiResponse<PageResult<Headquarters>> | PageResult<Headquarters>>(
-        `${this.baseUrl}/headquarters`,
-        {
-          params: toHttpParams({ page, size, organizationId }),
-        },
-      )
-      .pipe(map(unwrapApiResponse));
+    const key = `${page}|${size}|${organizationId ?? ''}`;
+    const cached = this.pageCache.get(key);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.http
+      .get<
+        | ApiResponse<PageResult<Headquarters> | Headquarters[]>
+        | PageResult<Headquarters>
+        | Headquarters[]
+      >(`${this.baseUrl}/headquarters`, {
+        params: toHttpParams({ page, size, organizationId }),
+      })
+      .pipe(
+        map(unwrapApiResponse),
+        map((response) => normalizeHeadquartersPage(response, page, size, organizationId)),
+        shareReplay(1),
+      );
+    this.pageCache.set(key, request$);
+    return request$;
   }
 
   getAll(organizationId?: number): Observable<Headquarters[]> {
@@ -82,11 +134,19 @@ export class HeadquartersApi {
       return of(filtered);
     }
 
-    return this.http
+    const key = `${organizationId ?? ''}`;
+    const cached = this.allCache.get(key);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.http
       .get<ApiResponse<Headquarters[]> | Headquarters[]>(`${this.baseUrl}/headquarters`, {
         params: toHttpParams({ organizationId }),
       })
-      .pipe(map(unwrapApiResponse));
+      .pipe(map(unwrapApiResponse), shareReplay(1));
+    this.allCache.set(key, request$);
+    return request$;
   }
 
   getById(id: number): Observable<Headquarters> {
@@ -95,9 +155,16 @@ export class HeadquartersApi {
       return of(headquarters ?? { id, organizationId: 0, name: 'Sede no encontrada' });
     }
 
-    return this.http
+    const cached = this.byIdCache.get(id);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.http
       .get<ApiResponse<Headquarters> | Headquarters>(`${this.baseUrl}/headquarters/${id}`)
-      .pipe(map(unwrapApiResponse));
+      .pipe(map(unwrapApiResponse), shareReplay(1));
+    this.byIdCache.set(id, request$);
+    return request$;
   }
 
   create(body: UpsertHeadquartersRequest): Observable<Headquarters> {
@@ -109,7 +176,10 @@ export class HeadquartersApi {
 
     return this.http
       .post<ApiResponse<Headquarters> | Headquarters>(`${this.baseUrl}/headquarters`, body)
-      .pipe(map(unwrapApiResponse));
+      .pipe(
+        map(unwrapApiResponse),
+        tap(() => this.invalidateCaches()),
+      );
   }
 
   update(id: number, body: UpsertHeadquartersRequest): Observable<Headquarters> {
@@ -124,7 +194,10 @@ export class HeadquartersApi {
 
     return this.http
       .put<ApiResponse<Headquarters> | Headquarters>(`${this.baseUrl}/headquarters/${id}`, body)
-      .pipe(map(unwrapApiResponse));
+      .pipe(
+        map(unwrapApiResponse),
+        tap(() => this.invalidateCaches()),
+      );
   }
 
   remove(id: number): Observable<void> {
@@ -136,6 +209,8 @@ export class HeadquartersApi {
       return of(void 0);
     }
 
-    return this.http.delete<void>(`${this.baseUrl}/headquarters/${id}`);
+    return this.http
+      .delete<void>(`${this.baseUrl}/headquarters/${id}`)
+      .pipe(tap(() => this.invalidateCaches()));
   }
 }

@@ -26,8 +26,9 @@ export class SuperadminOrganizationsPage {
     { initialValue: null },
   );
   protected readonly headquarters = toSignal(this.headquartersApi.getAll(), { initialValue: [] });
+  protected readonly organizations = computed(() => this.organizationsPage()?.items ?? []);
   protected readonly isLoading = computed(() => !this.organizationsPage());
-  protected readonly hasItems = computed(() => (this.organizationsPage()?.items.length ?? 0) > 0);
+  protected readonly hasItems = computed(() => this.organizations().length > 0);
   protected readonly totalPages = computed(() => {
     const total = this.organizationsPage()?.total ?? 0;
     const size = this.organizationsPage()?.size ?? this.pageSize;
@@ -37,7 +38,7 @@ export class SuperadminOrganizationsPage {
   protected readonly canGoNext = computed(() => this.currentPage() < this.totalPages() - 1);
 
   protected readonly organizationsView = computed(() =>
-    (this.organizationsPage()?.items ?? []).map((organization) => ({
+    this.organizations().map((organization) => ({
       id: organization.id,
       name: organization.name,
       headquarters: this.headquarters().filter((hq) => hq.organizationId === organization.id)

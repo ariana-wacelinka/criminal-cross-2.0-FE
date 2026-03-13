@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { map, Observable, of } from 'rxjs';
+import { map, Observable, of, shareReplay, tap } from 'rxjs';
 import { ApiResponse, ClientPackage } from '../domain/models';
 import { API_BASE_URL } from '../http/api-base-url.token';
 import { API_MOCK_MODE } from '../http';
@@ -98,11 +98,47 @@ function unwrapApiResponse<T>(response: ApiResponse<T> | T): T {
   return response as T;
 }
 
+function normalizePackage(raw: ClientPackage): ClientPackage {
+  const credits = Array.isArray(raw.credits)
+    ? raw.credits
+        .map((credit) => {
+          const nestedActivity = (credit as { activity?: { id?: number; name?: string } }).activity;
+          const rawActivityId =
+            (credit as { activityId?: number }).activityId ?? nestedActivity?.id ?? null;
+          const activityId = Number(rawActivityId);
+          if (!Number.isFinite(activityId)) {
+            return null;
+          }
+
+          const rawTokens = (credit as { tokens?: number }).tokens;
+          return {
+            activityId,
+            activityName:
+              (credit as { activityName?: string | null }).activityName ?? nestedActivity?.name,
+            tokens: Number.isFinite(rawTokens) ? Number(rawTokens) : 0,
+          };
+        })
+        .filter((credit): credit is NonNullable<typeof credit> => credit !== null)
+    : [];
+
+  return {
+    ...raw,
+    credits,
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class ClientPackagesApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
   private readonly apiMockMode = inject(API_MOCK_MODE);
+  private readonly allByUserCache = new Map<number, Observable<ClientPackage[]>>();
+  private readonly activeByUserCache = new Map<number, Observable<ClientPackage[]>>();
+
+  private invalidateUserCache(userId: number): void {
+    this.allByUserCache.delete(userId);
+    this.activeByUserCache.delete(userId);
+  }
 
   create(userId: number, body: UpsertClientPackageRequest): Observable<ClientPackage> {
     if (this.apiMockMode) {
@@ -129,7 +165,11 @@ export class ClientPackagesApi {
       .post<
         ApiResponse<ClientPackage> | ClientPackage
       >(`${this.baseUrl}/clients/${userId}/packages`, body)
-      .pipe(map(unwrapApiResponse));
+      .pipe(
+        map(unwrapApiResponse),
+        map(normalizePackage),
+        tap(() => this.invalidateUserCache(userId)),
+      );
   }
 
   update(
@@ -159,7 +199,11 @@ export class ClientPackagesApi {
       .patch<
         ApiResponse<ClientPackage> | ClientPackage
       >(`${this.baseUrl}/clients/${userId}/packages/${clientPackageId}`, body)
-      .pipe(map(unwrapApiResponse));
+      .pipe(
+        map(unwrapApiResponse),
+        map(normalizePackage),
+        tap(() => this.invalidateUserCache(userId)),
+      );
   }
 
   getActive(userId: number): Observable<ClientPackage[]> {
@@ -167,11 +211,22 @@ export class ClientPackagesApi {
       return of(MOCK_CLIENT_PACKAGES.filter((item) => item.userId === userId && item.active));
     }
 
-    return this.http
+    const cached = this.activeByUserCache.get(userId);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.http
       .get<
         ApiResponse<ClientPackage[]> | ClientPackage[]
       >(`${this.baseUrl}/clients/${userId}/packages/active`)
-      .pipe(map(unwrapApiResponse));
+      .pipe(
+        map(unwrapApiResponse),
+        map((items) => items.map(normalizePackage)),
+        shareReplay(1),
+      );
+    this.activeByUserCache.set(userId, request$);
+    return request$;
   }
 
   getAll(userId: number): Observable<ClientPackage[]> {
@@ -179,10 +234,21 @@ export class ClientPackagesApi {
       return of(MOCK_CLIENT_PACKAGES.filter((item) => item.userId === userId));
     }
 
-    return this.http
+    const cached = this.allByUserCache.get(userId);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.http
       .get<
         ApiResponse<ClientPackage[]> | ClientPackage[]
       >(`${this.baseUrl}/clients/${userId}/packages`)
-      .pipe(map(unwrapApiResponse));
+      .pipe(
+        map(unwrapApiResponse),
+        map((items) => items.map(normalizePackage)),
+        shareReplay(1),
+      );
+    this.allByUserCache.set(userId, request$);
+    return request$;
   }
 }

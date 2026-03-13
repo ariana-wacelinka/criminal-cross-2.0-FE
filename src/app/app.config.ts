@@ -6,25 +6,11 @@ import {
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import {
-  AuthSessionService,
-  authRefreshInterceptor,
-  authTokenInterceptor,
-  FIREBASE_CLIENT_CONFIG,
-  firebaseClientConfig,
-} from './core/auth';
+import { AuthSessionService, authRefreshInterceptor, authTokenInterceptor } from './core/auth';
+import { runtimeEnv } from './core/config/runtime-env';
 import { API_BASE_URL, API_MOCK_MODE } from './core/http';
 
 import { routes } from './app.routes';
-
-type RuntimeEnv = {
-  API_BASE_URL?: string;
-  API_MOCK_MODE?: string | boolean;
-};
-
-const runtimeEnv = (globalThis as { __env?: RuntimeEnv }).__env ?? {};
-const runtimeApiBaseUrl = runtimeEnv.API_BASE_URL ?? '/api';
-const runtimeApiMockMode = runtimeEnv.API_MOCK_MODE === true || runtimeEnv.API_MOCK_MODE === 'true';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -33,15 +19,11 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([authTokenInterceptor, authRefreshInterceptor])),
     {
       provide: API_BASE_URL,
-      useValue: runtimeApiBaseUrl,
+      useValue: runtimeEnv.API_BASE_URL,
     },
     {
       provide: API_MOCK_MODE,
-      useValue: runtimeApiMockMode,
-    },
-    {
-      provide: FIREBASE_CLIENT_CONFIG,
-      useValue: firebaseClientConfig,
+      useValue: runtimeEnv.API_MOCK_MODE,
     },
     provideAppInitializer(() => {
       const authSession = inject(AuthSessionService);
