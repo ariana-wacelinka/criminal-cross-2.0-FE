@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ActivitiesApi } from '../../core/api/activities.api';
@@ -18,14 +18,9 @@ export class SuperadminActivityDetailPage {
   protected readonly activityId = Number(this.route.snapshot.paramMap.get('activityId'));
 
   protected readonly activity = toSignal(this.activitiesApi.getById(this.activityId), {
-    initialValue: {
-      id: this.activityId,
-      hqId: this.headquartersId,
-      name: 'Cargando...',
-      description: '',
-      isActive: true,
-    },
+    initialValue: null,
   });
+  protected readonly isLoading = computed(() => this.activity() === null);
 
   protected async goBack(): Promise<void> {
     await this.router.navigateByUrl(`/headquarters/${this.headquartersId}/activities`);
