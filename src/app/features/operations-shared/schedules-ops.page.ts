@@ -9,7 +9,7 @@ import {
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { firstValueFrom, switchMap } from 'rxjs';
+import { firstValueFrom, of, switchMap } from 'rxjs';
 import {
   ActivitySchedulesApi,
   CreateActivityScheduleRequest,
@@ -34,13 +34,21 @@ export class SchedulesOpsPage {
   private readonly toast = inject(UiToastService);
 
   private readonly scope = this.route.snapshot.data['scope'] as 'org' | 'hq';
-  private readonly organizationId = 1;
-  private readonly fixedHeadquartersId = 101;
   protected readonly title = this.scope === 'org' ? 'Horarios por sede' : 'Horarios';
   private readonly refreshTick = signal(0);
 
+  private readonly accessibleHeadquarters = toSignal(this.headquartersApi.getAll(), {
+    initialValue: [],
+  });
+  private readonly organizationId = computed(
+    () => this.accessibleHeadquarters()[0]?.organizationId ?? 0,
+  );
+  private readonly defaultHeadquartersId = computed(
+    () => this.accessibleHeadquarters()[0]?.id ?? 0,
+  );
+
   protected readonly selectedHeadquartersId = signal<number>(
-    this.scope === 'hq' ? this.fixedHeadquartersId : 0,
+    this.scope === 'hq' ? this.defaultHeadquartersId() : 0,
   );
   protected readonly showForm = signal(false);
   protected readonly editingScheduleId = signal<number | null>(null);
@@ -58,11 +66,7 @@ export class SchedulesOpsPage {
   ];
   protected readonly selectedWeekDays = signal<WeekDay[]>([WeekDay.MONDAY, WeekDay.WEDNESDAY]);
 
-  protected readonly headquartersPage = toSignal(
-    this.headquartersApi.getPage(0, 100, this.organizationId),
-    { initialValue: null },
-  );
-  protected readonly headquarters = computed(() => this.headquartersPage()?.items ?? []);
+  protected readonly headquarters = computed(() => this.accessibleHeadquarters());
 
   private readonly schedulesRequest = computed(() => ({
     headquartersId: this.selectedHeadquartersId(),
@@ -74,14 +78,16 @@ export class SchedulesOpsPage {
       switchMap(({ headquartersId }) =>
         headquartersId
           ? this.schedulesApi.getAll(headquartersId)
-          : this.schedulesApi.getAll(this.fixedHeadquartersId),
+          : this.defaultHeadquartersId()
+            ? this.schedulesApi.getAll(this.defaultHeadquartersId())
+            : of([]),
       ),
     ),
     { initialValue: null },
   );
 
   private readonly activitiesRequest = computed(() => ({
-    headquartersId: this.selectedHeadquartersId() || this.fixedHeadquartersId,
+    headquartersId: this.selectedHeadquartersId() || this.defaultHeadquartersId(),
     name: this.activityQuery().trim(),
   }));
 
@@ -132,6 +138,11 @@ export class SchedulesOpsPage {
   constructor() {
     effect(() => {
       const headquarters = this.headquarters();
+      if (this.scope === 'hq' && !this.selectedHeadquartersId() && headquarters.length) {
+        this.selectedHeadquartersId.set(headquarters[0].id);
+        return;
+      }
+
       if (this.scope === 'org' && !this.selectedHeadquartersId() && headquarters.length) {
         this.selectedHeadquartersId.set(headquarters[0].id);
       }
@@ -232,7 +243,7 @@ export class SchedulesOpsPage {
     }
 
     const payload: CreateActivityScheduleRequest = {
-      organizationId: this.organizationId,
+      organizationId: this.organizationId(),
       headquartersId: this.selectedHeadquartersId(),
       activityId: this.form.controls.activityId.value,
       weekDays: this.selectedWeekDays(),
