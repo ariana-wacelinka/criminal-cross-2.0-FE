@@ -85,16 +85,10 @@
           @if (activePackages().length) {
             <div class="mt-2 grid gap-2">
               @for (pack of activePackages(); track pack.id) {
-                <div class="rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-2 py-2">
-                  <p class="text-sm font-semibold">Paquete #{{ pack.id }}</p>
-                  <p class="text-xs text-athlium-muted">
-                    {{ pack.periodStart }} a {{ pack.periodEnd }}
-                  </p>
-                  <p class="mt-1 text-xs text-athlium-muted">
-                    Tokens:
-                    @for (credit of pack.credits; track credit.activityId) {
-                      <span class="ml-1">A{{ credit.activityId }}: {{ credit.tokens }}</span>
-                    }
+                <div class="package-card border border-emerald-400/25 bg-emerald-500/10">
+                  <p class="package-title">{{ packageTitle(pack) }}</p>
+                  <p class="package-meta">
+                    {{ pack.periodStart }} a {{ pack.periodEnd }} · {{ totalTokens(pack) }} tokens
                   </p>
                 </div>
               }
@@ -112,12 +106,10 @@
           @if (previousPackages().length) {
             <div class="mt-2 grid gap-2">
               @for (pack of previousPackages(); track pack.id) {
-                <div
-                  class="rounded-lg border border-athlium-primary/12 bg-athlium-surface/70 px-2 py-2"
-                >
-                  <p class="text-sm font-semibold">Paquete #{{ pack.id }}</p>
-                  <p class="text-xs text-athlium-muted">
-                    {{ pack.periodStart }} a {{ pack.periodEnd }}
+                <div class="package-card border border-athlium-primary/12 bg-athlium-surface/70">
+                  <p class="package-title">{{ packageTitle(pack) }}</p>
+                  <p class="package-meta">
+                    {{ pack.periodStart }} a {{ pack.periodEnd }} · {{ totalTokens(pack) }} tokens
                   </p>
                 </div>
               }

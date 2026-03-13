@@ -102,11 +102,11 @@ export class SuperadminHeadquartersActivitiesPage {
   });
 
   private readonly headquartersListPath = computed(() => {
-    const role = this.authSession.user()?.roles[0];
-    if (role === Role.SUPERADMIN) {
+    const roles = this.authSession.user()?.roles ?? [];
+    if (roles.includes(Role.SUPERADMIN)) {
       return '/headquarters';
     }
-    if (role === Role.PROFESSOR) {
+    if (roles.includes(Role.PROFESSOR)) {
       return '/professor/dashboard';
     }
     return '/org-owner/headquarters';
