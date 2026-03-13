@@ -1,0 +1,55 @@
+<section class="px-4 py-6 text-athlium-text lg:px-8">
+  <header
+    class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Cliente</p>
+    <h1 class="mt-2 font-title text-3xl font-semibold">Mi panel</h1>
+    <p class="mt-1 text-sm text-athlium-muted">Resumen de clases, paquete y próximos pasos.</p>
+  </header>
+
+  <section class="mt-5 grid gap-3 sm:grid-cols-3">
+    <article
+      class="rounded-xl border border-athlium-primary/12 bg-athlium-surface/90 p-4 shadow-soft"
+    >
+      <p class="text-xs uppercase tracking-[0.14em] text-athlium-muted">Reservas activas</p>
+      <p class="mt-2 font-title text-3xl font-semibold">
+        {{ bookingsCount() === 0 ? '-' : bookingsCount() }}
+      </p>
+      <p class="mt-1 text-xs text-athlium-muted">Dato temporalmente no disponible.</p>
+    </article>
+    <article
+      class="rounded-xl border border-athlium-primary/12 bg-athlium-surface/90 p-4 shadow-soft"
+    >
+      <p class="text-xs uppercase tracking-[0.14em] text-athlium-muted">Paquetes</p>
+      <p class="mt-2 font-title text-3xl font-semibold">{{ packagesCount() }}</p>
+    </article>
+    <article
+      class="rounded-xl border border-athlium-primary/12 bg-athlium-surface/90 p-4 shadow-soft"
+    >
+      <p class="text-xs uppercase tracking-[0.14em] text-athlium-muted">Tokens activos</p>
+      <p class="mt-2 font-title text-3xl font-semibold">{{ activeTokens() }}</p>
+    </article>
+  </section>
+
+  <article
+    class="ath-reveal mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <h2 class="font-title text-xl font-semibold">Accesos rápidos</h2>
+    <div class="mt-4 grid gap-3 md:grid-cols-2">
+      <a
+        class="group rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 p-4 transition hover:border-athlium-primary/28 hover:bg-athlium-primary-soft/25"
+        routerLink="/client/classes"
+      >
+        <p class="font-semibold">Reservas</p>
+        <p class="mt-1 text-sm text-athlium-muted">Consulta y gestiona tus turnos reservados.</p>
+      </a>
+      <a
+        class="group rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 p-4 transition hover:border-athlium-primary/28 hover:bg-athlium-primary-soft/25"
+        routerLink="/client/packages"
+      >
+        <p class="font-semibold">Mis paquetes</p>
+        <p class="mt-1 text-sm text-athlium-muted">Ver paquete activo e historial de paquetes.</p>
+      </a>
+    </div>
+  </article>
+</section>

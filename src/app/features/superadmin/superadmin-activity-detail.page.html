@@ -1,0 +1,67 @@
+<section class="px-4 py-6 text-athlium-text lg:px-8">
+  <header
+    class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft flex items-center gap-5"
+  >
+    <button
+      type="button"
+      class="grid h-10 w-10 place-content-center rounded-lg bg-athlium-surface/85 text-athlium-muted transition hover:bg-athlium-surface hover:text-athlium-text"
+      (click)="goBack()"
+      aria-label="Volver"
+    >
+      <span class="material-symbols-outlined text-base leading-none">arrow_back_ios_new</span>
+    </button>
+
+    <div class="min-w-0 flex-1">
+      <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Superadmin</p>
+      @if (isLoading()) {
+        <div class="mt-2 h-9 w-64 animate-pulse rounded bg-athlium-primary/20"></div>
+      } @else {
+        <h1 class="truncate font-title text-3xl font-semibold">{{ activity()?.name }}</h1>
+      }
+      <p class="mt-1 text-sm text-athlium-muted">Detalle de actividad.</p>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 px-4 py-2 text-sm font-semibold text-athlium-text transition hover:bg-athlium-surface-2/55"
+        (click)="editActivity()"
+      >
+        Editar
+      </button>
+      <button
+        type="button"
+        class="rounded-xl border border-red-400/35 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-500/20"
+        (click)="deleteActivity()"
+      >
+        Eliminar
+      </button>
+    </div>
+  </header>
+
+  <article
+    class="mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    @if (isLoading()) {
+      <div class="grid gap-3">
+        @for (item of [1, 2]; track item) {
+          <div class="animate-pulse rounded-xl bg-athlium-surface-2/45 px-3 py-3">
+            <div class="h-3 w-20 rounded bg-athlium-primary/20"></div>
+            <div class="mt-2 h-4 w-2/3 rounded bg-athlium-primary/15"></div>
+          </div>
+        }
+      </div>
+    } @else {
+      <dl class="grid gap-3 text-sm">
+        <div class="rounded-xl bg-athlium-surface-2/45 px-3 py-3">
+          <dt class="text-athlium-muted">Nombre</dt>
+          <dd class="mt-1 font-semibold">{{ activity()?.name }}</dd>
+        </div>
+        <div class="rounded-xl bg-athlium-surface-2/45 px-3 py-3">
+          <dt class="text-athlium-muted">Descripción</dt>
+          <dd class="mt-1 font-semibold">{{ activity()?.description }}</dd>
+        </div>
+      </dl>
+    }
+  </article>
+</section>

@@ -1,0 +1,148 @@
+<section class="px-4 py-6 text-athlium-text lg:px-8">
+  <header
+    class="ath-reveal rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Superadmin</p>
+    <h1 class="mt-2 font-title text-3xl font-semibold">Control Global</h1>
+    <p class="mt-1 text-sm text-athlium-muted">
+      Vista mock basada en DTOs actuales de organizaciones, sedes y usuarios.
+    </p>
+  </header>
+
+  @if (isLoading()) {
+    <section class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      @for (item of [1, 2, 3]; track item) {
+        <article class="rounded-xl border border-athlium-primary/10 bg-athlium-surface-2/30 p-4">
+          <div class="h-3 w-24 rounded bg-athlium-surface-2/70"></div>
+          <div class="mt-3 h-8 w-14 rounded bg-athlium-surface-2/70"></div>
+        </article>
+      }
+    </section>
+
+    <section class="mt-5 grid gap-5 xl:grid-cols-5">
+      <article
+        class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/70 p-5 xl:col-span-3"
+      >
+        <div class="h-6 w-44 rounded bg-athlium-surface-2/70"></div>
+        <div class="mt-4 space-y-2">
+          @for (item of [1, 2, 3, 4, 5]; track item) {
+            <div class="h-10 rounded bg-athlium-surface-2/60"></div>
+          }
+        </div>
+      </article>
+      <article
+        class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/70 p-5 xl:col-span-2"
+      >
+        <div class="h-6 w-44 rounded bg-athlium-surface-2/70"></div>
+        <div class="mt-4 space-y-3">
+          @for (item of [1, 2, 3, 4]; track item) {
+            <div class="h-20 rounded-xl bg-athlium-surface-2/60"></div>
+          }
+        </div>
+      </article>
+    </section>
+  } @else {
+    <section class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <article
+        class="ath-reveal rounded-xl border border-athlium-primary/10 bg-athlium-surface-2/45 p-4"
+      >
+        <p class="text-xs uppercase tracking-[0.14em] text-athlium-muted">Organizaciones</p>
+        <p class="mt-2 text-3xl font-semibold">{{ totalOrganizations() }}</p>
+      </article>
+      <article
+        class="ath-reveal rounded-xl border border-athlium-primary/10 bg-athlium-surface-2/45 p-4"
+        style="animation-delay: 60ms"
+      >
+        <p class="text-xs uppercase tracking-[0.14em] text-athlium-muted">Sedes</p>
+        <p class="mt-2 text-3xl font-semibold">{{ totalHeadquarters() }}</p>
+      </article>
+      <article
+        class="ath-reveal rounded-xl border border-athlium-primary/10 bg-athlium-surface-2/45 p-4"
+        style="animation-delay: 120ms"
+      >
+        <p class="text-xs uppercase tracking-[0.14em] text-athlium-muted">Usuarios</p>
+        <p class="mt-2 text-3xl font-semibold">{{ totalUsers() }}</p>
+      </article>
+    </section>
+
+    <section class="mt-5 grid gap-5 xl:grid-cols-5">
+      <article
+        class="ath-reveal rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 xl:col-span-3"
+        style="animation-delay: 90ms"
+      >
+        <h2 class="font-title text-xl font-semibold">Organizaciones</h2>
+        @if (hasOrganizations()) {
+          <ul class="mt-4 grid gap-2 md:hidden">
+            @for (org of organizationsView(); track org.id; let i = $index) {
+              <li
+                class="ath-reveal rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/40 px-3 py-3"
+                [style.animation-delay.ms]="i * 45"
+              >
+                <p class="font-medium">{{ org.name }}</p>
+              </li>
+            }
+          </ul>
+
+          <div class="mt-4 hidden overflow-x-auto md:block">
+            <table class="w-full min-w-[420px] text-left text-sm">
+              <thead class="text-athlium-muted">
+                <tr class="border-b border-athlium-primary/10">
+                  <th class="py-2 font-medium">Nombre</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (org of organizationsView(); track org.id; let i = $index) {
+                  <tr
+                    class="ath-reveal border-b border-athlium-primary/10 last:border-b-0"
+                    [style.animation-delay.ms]="i * 35"
+                  >
+                    <td class="py-3 font-medium">{{ org.name }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div
+            class="mt-4 rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 px-4 py-5 text-center"
+          >
+            <p class="text-sm text-athlium-muted">Aún no hay organizaciones para mostrar.</p>
+          </div>
+        }
+      </article>
+
+      <article
+        class="ath-reveal rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 xl:col-span-2"
+        style="animation-delay: 140ms"
+      >
+        <h2 class="font-title text-xl font-semibold">Usuarios recientes</h2>
+        @if (hasUsers()) {
+          <ul class="mt-4 space-y-3">
+            @for (user of usersView(); track user.id; let i = $index) {
+              <li
+                class="ath-reveal rounded-xl border border-athlium-primary/10 bg-athlium-surface-2/40 p-3"
+                [style.animation-delay.ms]="i * 55"
+              >
+                <p class="break-words font-medium">{{ user.name }} {{ user.lastName }}</p>
+                <p class="break-all text-xs text-athlium-muted">{{ user.email }}</p>
+                <div class="mt-2 flex items-center gap-2">
+                  <span
+                    class="rounded-full border border-athlium-primary/20 bg-athlium-primary/10 px-2 py-1 text-xs font-semibold"
+                  >
+                    {{ user.roles[0] }}
+                  </span>
+                </div>
+              </li>
+            }
+          </ul>
+        } @else {
+          <div
+            class="mt-4 rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 px-4 py-5 text-center"
+          >
+            <p class="text-sm text-athlium-muted">Aún no hay usuarios para mostrar.</p>
+          </div>
+        }
+      </article>
+    </section>
+  }
+</section>

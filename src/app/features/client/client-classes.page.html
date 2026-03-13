@@ -1,0 +1,171 @@
+<section class="px-4 py-6 text-athlium-text lg:px-8">
+  <header
+    class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Cliente</p>
+    <h1 class="mt-2 font-title text-3xl font-semibold">Reservas</h1>
+    <p class="mt-1 text-sm text-athlium-muted">
+      Elegí una sesión para reservar o cancelar tu lugar.
+    </p>
+  </header>
+
+  <section
+    class="ath-reveal mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-4 shadow-soft"
+    style="animation-delay: 70ms"
+  >
+    <label class="grid gap-2 text-sm sm:max-w-xs">
+      <span class="text-athlium-muted">Seleccionar fecha</span>
+      <input
+        type="date"
+        [value]="selectedDate()"
+        (input)="setDate($any($event.target).value)"
+        class="appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+      />
+    </label>
+  </section>
+
+  <article
+    class="ath-reveal mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+    style="animation-delay: 110ms"
+  >
+    @if (isLoading()) {
+      <div class="grid gap-3">
+        @for (item of [1, 2, 3]; track item) {
+          <div
+            class="animate-pulse rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 p-3"
+          >
+            <div class="h-4 w-1/3 rounded bg-athlium-primary/20"></div>
+            <div class="mt-2 h-3 w-2/3 rounded bg-athlium-primary/15"></div>
+            <div class="mt-2 h-3 w-1/4 rounded bg-athlium-primary/15"></div>
+          </div>
+        }
+      </div>
+    } @else if (visibleRows().length) {
+      <div class="grid gap-3">
+        @for (row of visibleRows(); track row.sessionId) {
+          <button
+            type="button"
+            class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 p-3 text-left transition hover:border-athlium-primary/28"
+            (click)="openSession(row.sessionId)"
+          >
+            <div class="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p class="font-semibold">{{ row.activityName }}</p>
+                <p class="mt-1 text-sm text-athlium-muted">{{ row.dateLabel }}</p>
+                <p class="text-xs text-athlium-muted">{{ row.scheduleLabel }}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-xs text-athlium-muted">Cupos</p>
+                <p class="text-sm font-semibold">{{ row.occupancyLabel }}</p>
+                <span
+                  class="mt-2 inline-flex rounded-full border px-2 py-0.5 text-xs"
+                  [class.border-emerald-300/35]="row.booked"
+                  [class.bg-emerald-500/10]="row.booked"
+                  [class.text-emerald-200]="row.booked"
+                  [class.border-athlium-primary/18]="!row.booked"
+                  [class.bg-athlium-primary-soft/35]="!row.booked"
+                  [class.text-athlium-muted]="!row.booked"
+                >
+                  {{ row.booked ? 'Reservada' : 'Disponible' }}
+                </span>
+              </div>
+            </div>
+          </button>
+        }
+      </div>
+    } @else {
+      <p class="text-sm text-athlium-muted">No hay sesiones para la fecha seleccionada.</p>
+    }
+  </article>
+
+  @if (selectedSession(); as session) {
+    <div
+      class="fixed inset-0 z-40 grid place-items-center bg-black/65 px-3 py-6"
+      (click)="closeSession()"
+    >
+      <article
+        class="ath-reveal max-h-full w-full max-w-4xl overflow-auto rounded-panel border border-athlium-primary/12 bg-athlium-surface/95 p-6 shadow-soft"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h2 class="font-title text-2xl font-semibold">Turno</h2>
+            <p class="mt-1 text-sm text-athlium-muted">Detalle de la sesión seleccionada.</p>
+          </div>
+          <button
+            type="button"
+            class="h-10 w-10 rounded-lg border border-athlium-primary/20 text-xl text-athlium-muted transition hover:text-athlium-text"
+            (click)="closeSession()"
+          >
+            ×
+          </button>
+        </div>
+
+        <div class="mt-5 grid gap-4 text-sm sm:grid-cols-2">
+          <div>
+            <p class="text-athlium-muted">Fecha</p>
+            <p class="mt-1 font-semibold">{{ dateLabel(session.startsAt) }}</p>
+          </div>
+          <div>
+            <p class="text-athlium-muted">Horario</p>
+            <p class="mt-1 font-semibold">{{ scheduleLabel(session) }}</p>
+          </div>
+          <div>
+            <p class="text-athlium-muted">Actividad</p>
+            <p class="mt-1 font-semibold">
+              {{ activityName(session.activityId, session.activityName) }}
+            </p>
+          </div>
+          <div>
+            <p class="text-athlium-muted">Participantes</p>
+            <p class="mt-1 font-semibold">
+              {{ selectedSessionOccupancy() }} / {{ session.maxParticipants }}
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-5">
+          @if (selectedSessionBooked()) {
+            <button
+              type="button"
+              class="w-full rounded-lg bg-red-500/90 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500"
+              (click)="cancelReservation(session.id)"
+            >
+              Cancelar reserva
+            </button>
+          } @else {
+            <button
+              type="button"
+              class="w-full rounded-lg bg-amber-400 px-4 py-2 text-sm font-semibold text-black transition hover:brightness-105"
+              (click)="reserveSession(session.id)"
+            >
+              Reservar turno
+            </button>
+          }
+        </div>
+
+        <div class="mt-5">
+          <p class="text-sm font-semibold">
+            Participantes ({{ selectedSessionParticipants().length }})
+          </p>
+          @if (selectedSessionParticipants().length) {
+            <div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              @for (participant of selectedSessionParticipants(); track participant.id) {
+                <article
+                  class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 px-3 py-2"
+                >
+                  <p class="text-sm font-medium">{{ participant.name }}</p>
+                  <p class="text-xs text-athlium-muted">{{ participant.email }}</p>
+                </article>
+              }
+            </div>
+          } @else {
+            <p class="mt-2 text-sm text-athlium-muted">
+              Todavía no hay participantes en esta sesión.
+            </p>
+          }
+        </div>
+      </article>
+    </div>
+  }
+</section>

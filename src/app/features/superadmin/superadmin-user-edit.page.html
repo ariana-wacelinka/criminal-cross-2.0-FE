@@ -1,0 +1,133 @@
+<section class="px-4 py-6 text-athlium-text lg:px-8">
+  <header
+    class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Superadmin</p>
+    <h1 class="mt-2 font-title text-3xl font-semibold">Editar usuario</h1>
+    @if (isLoading()) {
+      <div class="mt-2 h-5 w-56 animate-pulse rounded bg-athlium-primary/20"></div>
+    } @else {
+      <p class="mt-1 text-sm text-athlium-muted">{{ fullName() }}</p>
+    }
+  </header>
+
+  @if (isLoading()) {
+    <article
+      class="mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+    >
+      <div class="grid gap-4 sm:grid-cols-2">
+        @for (item of [1, 2, 3]; track item) {
+          <div class="animate-pulse rounded-xl bg-athlium-surface-2/45 px-3 py-3">
+            <div class="h-3 w-20 rounded bg-athlium-primary/20"></div>
+            <div class="mt-2 h-10 w-full rounded bg-athlium-primary/15"></div>
+          </div>
+        }
+      </div>
+      <div class="mt-5 h-3 w-72 animate-pulse rounded bg-athlium-primary/20"></div>
+      <div class="mt-4 flex flex-wrap gap-2">
+        @for (item of [1, 2, 3, 4, 5]; track item) {
+          <div class="h-7 w-24 animate-pulse rounded-full bg-athlium-primary/15"></div>
+        }
+      </div>
+    </article>
+  } @else {
+    <form
+      class="mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+      [formGroup]="form"
+      (ngSubmit)="save()"
+    >
+      <div class="grid gap-4 sm:grid-cols-2">
+        <label class="grid gap-2 text-sm">
+          <span class="text-athlium-muted">Nombre</span>
+          <input
+            class="appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            formControlName="name"
+            placeholder="Nombre"
+            type="text"
+          />
+          @if (form.controls.name.hasError('required') && form.controls.name.touched) {
+            <p class="text-xs text-red-300">Ingresa el nombre.</p>
+          }
+        </label>
+
+        <label class="grid gap-2 text-sm">
+          <span class="text-athlium-muted">Apellido</span>
+          <input
+            class="appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            formControlName="lastName"
+            placeholder="Apellido"
+            type="text"
+          />
+          @if (form.controls.lastName.hasError('required') && form.controls.lastName.touched) {
+            <p class="text-xs text-red-300">Ingresa el apellido.</p>
+          }
+        </label>
+
+        <label class="grid gap-2 text-sm">
+          <span class="text-athlium-muted">Email</span>
+          <input
+            class="appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            formControlName="email"
+            placeholder="Email"
+            type="email"
+          />
+          @if (form.controls.email.hasError('required') && form.controls.email.touched) {
+            <p class="text-xs text-red-300">Ingresa el email.</p>
+          }
+          @if (form.controls.email.hasError('email') && form.controls.email.touched) {
+            <p class="text-xs text-red-300">Ingresa un email válido.</p>
+          }
+        </label>
+      </div>
+
+      @if (canEditRoles()) {
+        <p class="mt-5 text-sm text-athlium-muted">
+          Selecciona los roles permitidos para este usuario.
+        </p>
+
+        <div class="mt-4 flex flex-wrap gap-2">
+          @for (role of availableRoles(); track role) {
+            <button
+              type="button"
+              class="rounded-full border px-3 py-1 text-xs font-semibold transition"
+              [class.border-athlium-primary/35]="isRoleSelected(role)"
+              [class.bg-athlium-primary/20]="isRoleSelected(role)"
+              [class.text-athlium-text]="isRoleSelected(role)"
+              [class.border-athlium-primary/12]="!isRoleSelected(role)"
+              [class.text-athlium-muted]="!isRoleSelected(role)"
+              (click)="toggleRole(role)"
+            >
+              {{ role }}
+            </button>
+          }
+        </div>
+      }
+
+      @if (errorMessage()) {
+        <p
+          class="mt-4 rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200"
+        >
+          {{ errorMessage() }}
+        </p>
+      }
+
+      <div class="mt-5 flex items-center gap-2">
+        <button
+          type="submit"
+          class="rounded-xl bg-athlium-primary px-4 py-2 font-semibold text-athlium-text transition hover:brightness-110"
+          [disabled]="isSaving()"
+        >
+          {{ isSaving() ? 'Guardando...' : 'Guardar cambios' }}
+        </button>
+        <button
+          type="button"
+          class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 px-4 py-2 font-semibold text-athlium-text transition hover:bg-athlium-surface-2/55"
+          (click)="cancel()"
+          [disabled]="isSaving()"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
+  }
+</section>

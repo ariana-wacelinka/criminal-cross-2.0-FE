@@ -1,0 +1,356 @@
+<section class="px-4 py-6 text-athlium-text lg:px-8">
+  <header
+    class="ath-reveal rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Operaciones</p>
+    <h1 class="mt-2 font-title text-3xl font-semibold">{{ title }}</h1>
+    <p class="mt-1 text-sm text-athlium-muted">
+      Gestiona horarios por sede. La creación y edición se realiza en un panel aparte.
+    </p>
+  </header>
+
+  @if (headquarters().length > 1) {
+    <div class="ath-reveal mt-4 max-w-sm" style="animation-delay: 40ms">
+      <label class="grid gap-2 text-sm">
+        <span class="text-athlium-muted">Sede</span>
+        <select
+          class="ath-select appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+          [value]="selectedHeadquartersId()"
+          (change)="selectHeadquarters($any($event.target).value)"
+        >
+          @for (hq of headquarters(); track hq.id) {
+            <option [value]="hq.id">{{ hq.name }}</option>
+          }
+        </select>
+      </label>
+    </div>
+  }
+
+  <section
+    class="ath-reveal mt-5 flex flex-wrap items-center justify-between gap-3 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-4 shadow-soft"
+    style="animation-delay: 70ms"
+  >
+    <p class="text-sm text-athlium-muted">
+      Listado de horarios configurados para la sede seleccionada.
+    </p>
+    <button
+      type="button"
+      class="rounded-xl bg-athlium-primary px-4 py-2 text-sm font-semibold text-athlium-text transition hover:brightness-110"
+      (click)="openCreateForm()"
+    >
+      Crear horario para actividad
+    </button>
+  </section>
+
+  @if (showForm()) {
+    <form
+      class="ath-reveal mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+      style="animation-delay: 100ms"
+      [formGroup]="form"
+      (ngSubmit)="saveSchedule()"
+    >
+      <div class="flex items-center justify-between gap-2">
+        <h2 class="font-title text-xl font-semibold">
+          {{ editingScheduleId() ? 'Editar horario' : 'Nuevo horario' }}
+        </h2>
+        <button
+          type="button"
+          class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-athlium-muted"
+          (click)="closeForm()"
+        >
+          Cerrar
+        </button>
+      </div>
+
+      <div class="mt-4 grid gap-3 md:grid-cols-2">
+        <label class="grid gap-2 text-sm md:col-span-2">
+          <span class="text-athlium-muted">Actividad</span>
+          <div class="relative w-full">
+            <input
+              type="text"
+              [value]="activityQuery()"
+              (input)="setActivityQuery($any($event.target).value)"
+              (focus)="openActivitySelector()"
+              (blur)="closeActivitySelector()"
+              placeholder="Buscar actividad"
+              class="w-full appearance-none rounded-xl border bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+              [class.border-red-400/45]="
+                form.controls.activityId.invalid && form.controls.activityId.touched
+              "
+              [class.border-athlium-primary/14]="
+                !(form.controls.activityId.invalid && form.controls.activityId.touched)
+              "
+            />
+
+            @if (showActivityOptions()) {
+              <div
+                class="absolute z-40 mt-2 max-h-52 w-full overflow-auto rounded-xl border border-athlium-primary/20 bg-athlium-surface p-2 shadow-[0_14px_26px_rgba(3,9,31,0.62)]"
+                style="background-color: rgb(var(--ath-surface-rgb) / 0.995)"
+              >
+                @if (filteredActivities().length) {
+                  <div class="grid gap-1">
+                    @for (activity of filteredActivities(); track activity.id) {
+                      <button
+                        type="button"
+                        class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
+                        (click)="selectActivity(activity.id)"
+                      >
+                        {{ activity.name }}
+                      </button>
+                    }
+                  </div>
+                } @else {
+                  <p class="px-2 py-2 text-sm text-athlium-muted">Sin actividades para mostrar.</p>
+                }
+              </div>
+            }
+          </div>
+          @if (form.controls.activityId.invalid && form.controls.activityId.touched) {
+            <p class="text-xs text-red-300">Selecciona una actividad válida.</p>
+          }
+        </label>
+
+        <div class="grid gap-2 text-sm md:col-span-2">
+          <span class="text-athlium-muted">Días</span>
+          <div class="flex flex-wrap gap-2">
+            @for (day of dayOptions; track day.value) {
+              <button
+                type="button"
+                class="rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] transition"
+                [class.border-athlium-primary/35]="isSelectedDay(day.value)"
+                [class.bg-athlium-primary/20]="isSelectedDay(day.value)"
+                [class.text-athlium-text]="isSelectedDay(day.value)"
+                [class.border-athlium-primary/12]="!isSelectedDay(day.value)"
+                [class.bg-athlium-surface-2/30]="!isSelectedDay(day.value)"
+                [class.text-athlium-muted]="!isSelectedDay(day.value)"
+                (click)="toggleDay(day.value)"
+              >
+                {{ day.label }}
+              </button>
+            }
+          </div>
+          @if (showWeekDaysError()) {
+            <p class="text-xs text-red-300">Selecciona al menos un día.</p>
+          }
+        </div>
+
+        <label class="grid gap-2 text-sm">
+          <span class="text-athlium-muted">Hora inicio</span>
+          <input
+            class="appearance-none rounded-xl border bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            [class.border-red-400/45]="
+              form.controls.startTime.invalid && form.controls.startTime.touched
+            "
+            [class.border-athlium-primary/14]="
+              !(form.controls.startTime.invalid && form.controls.startTime.touched)
+            "
+            formControlName="startTime"
+            type="time"
+          />
+          @if (form.controls.startTime.invalid && form.controls.startTime.touched) {
+            <p class="text-xs text-red-300">Ingresa una hora de inicio.</p>
+          }
+        </label>
+
+        <label class="grid gap-2 text-sm">
+          <span class="text-athlium-muted">Duracion (min)</span>
+          <input
+            class="appearance-none rounded-xl border bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            [class.border-red-400/45]="
+              form.controls.durationMinutes.invalid && form.controls.durationMinutes.touched
+            "
+            [class.border-athlium-primary/14]="
+              !(form.controls.durationMinutes.invalid && form.controls.durationMinutes.touched)
+            "
+            formControlName="durationMinutes"
+            type="number"
+          />
+          @if (
+            form.controls.durationMinutes.hasError('required') &&
+            form.controls.durationMinutes.touched
+          ) {
+            <p class="text-xs text-red-300">Ingresa una duración.</p>
+          }
+          @if (
+            form.controls.durationMinutes.hasError('min') && form.controls.durationMinutes.touched
+          ) {
+            <p class="text-xs text-red-300">La duración mínima es de 15 minutos.</p>
+          }
+        </label>
+
+        <label class="grid gap-2 text-sm">
+          <span class="text-athlium-muted">Desde</span>
+          <input
+            class="appearance-none rounded-xl border bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            [class.border-red-400/45]="
+              (form.controls.activeFrom.invalid && form.controls.activeFrom.touched) ||
+              showDateRangeError()
+            "
+            [class.border-athlium-primary/14]="
+              !(
+                (form.controls.activeFrom.invalid && form.controls.activeFrom.touched) ||
+                showDateRangeError()
+              )
+            "
+            formControlName="activeFrom"
+            type="date"
+          />
+          @if (form.controls.activeFrom.hasError('required') && form.controls.activeFrom.touched) {
+            <p class="text-xs text-red-300">Selecciona la fecha de inicio.</p>
+          }
+        </label>
+
+        <label class="grid gap-2 text-sm">
+          <span class="text-athlium-muted">Hasta</span>
+          <input
+            class="appearance-none rounded-xl border bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            [class.border-red-400/45]="
+              (form.controls.activeUntil.invalid && form.controls.activeUntil.touched) ||
+              showDateRangeError()
+            "
+            [class.border-athlium-primary/14]="
+              !(
+                (form.controls.activeUntil.invalid && form.controls.activeUntil.touched) ||
+                showDateRangeError()
+              )
+            "
+            formControlName="activeUntil"
+            type="date"
+          />
+          @if (
+            form.controls.activeUntil.hasError('required') && form.controls.activeUntil.touched
+          ) {
+            <p class="text-xs text-red-300">Selecciona la fecha de fin.</p>
+          }
+          @if (showDateRangeError()) {
+            <p class="text-xs text-red-300">
+              La fecha de fin debe ser igual o posterior a la fecha de inicio.
+            </p>
+          }
+        </label>
+      </div>
+
+      <div class="mt-4 flex items-center gap-2">
+        <button
+          type="submit"
+          class="rounded-xl bg-athlium-primary px-4 py-2 text-sm font-semibold text-athlium-text transition hover:brightness-110"
+        >
+          {{ editingScheduleId() ? 'Guardar cambios' : 'Crear horario' }}
+        </button>
+        <button
+          type="button"
+          class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 px-4 py-2 text-sm font-semibold text-athlium-text transition hover:bg-athlium-surface-2/55"
+          (click)="closeForm()"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
+  }
+
+  @if (isLoading()) {
+    <div
+      class="ath-reveal mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+      style="animation-delay: 120ms"
+    >
+      <div class="space-y-2">
+        @for (item of [1, 2, 3, 4, 5]; track item) {
+          <div class="h-11 rounded-lg bg-athlium-surface-2/60"></div>
+        }
+      </div>
+    </div>
+  } @else if (hasItems()) {
+    <div
+      class="ath-reveal mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+      style="animation-delay: 120ms"
+    >
+      <div class="grid gap-3 md:hidden">
+        @for (schedule of schedules() ?? []; track schedule.id; let i = $index) {
+          <article
+            class="ath-reveal rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 p-3"
+            [style.animation-delay.ms]="i * 28"
+          >
+            <p class="text-sm font-semibold">
+              {{ activityName(schedule.activityId, schedule.activityName) }}
+            </p>
+            <p class="mt-1 text-xs text-athlium-muted">{{ formatWeekDays(schedule.weekDays) }}</p>
+            <p class="mt-1 text-xs text-athlium-muted">
+              {{ schedule.startTime }} · {{ schedule.durationMinutes }}m
+            </p>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                class="rounded-lg border border-athlium-primary/12 px-3 py-1.5 text-xs"
+                (click)="editSchedule(schedule.id)"
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                class="rounded-lg border border-red-400/35 bg-red-500/10 px-3 py-1.5 text-xs text-red-200"
+                (click)="removeSchedule(schedule.id)"
+              >
+                Eliminar
+              </button>
+            </div>
+          </article>
+        }
+      </div>
+
+      <table class="hidden w-full text-left text-sm md:table">
+        <thead class="text-athlium-muted">
+          <tr class="border-b border-athlium-primary/10">
+            <th class="py-2 font-medium">Actividad</th>
+            <th class="py-2 font-medium">Dias</th>
+            <th class="py-2 font-medium">Hora</th>
+            <th class="py-2 pr-0 text-right font-medium"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (schedule of schedules() ?? []; track schedule.id; let i = $index) {
+            <tr
+              class="ath-reveal border-b border-athlium-primary/10 last:border-b-0"
+              [style.animation-delay.ms]="i * 28"
+            >
+              <td class="py-3 font-medium">
+                {{ activityName(schedule.activityId, schedule.activityName) }}
+              </td>
+              <td class="py-3 text-athlium-muted">{{ formatWeekDays(schedule.weekDays) }}</td>
+              <td class="py-3 text-athlium-muted">
+                {{ schedule.startTime }} · {{ schedule.durationMinutes }}m
+              </td>
+              <td class="py-3 pr-0 text-right">
+                <div class="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    class="rounded-lg border border-athlium-primary/12 px-2 py-1 text-xs"
+                    (click)="editSchedule(schedule.id)"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    class="rounded-lg border border-red-400/35 bg-red-500/10 px-2 py-1 text-xs text-red-200"
+                    (click)="removeSchedule(schedule.id)"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <article
+      class="ath-reveal mt-5 rounded-panel border border-athlium-primary/12 bg-athlium-surface/90 p-7 text-center shadow-soft"
+      style="animation-delay: 120ms"
+    >
+      <h3 class="font-title text-2xl font-semibold">No hay horarios</h3>
+      <p class="mt-1 text-sm text-athlium-muted">
+        Crea un horario para empezar a calendarizar sesiones.
+      </p>
+    </article>
+  }
+</section>

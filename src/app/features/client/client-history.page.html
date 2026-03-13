@@ -1,0 +1,34 @@
+<section class="px-4 py-6 text-athlium-text lg:px-8">
+  <header
+    class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Cliente</p>
+    <h1 class="mt-2 font-title text-3xl font-semibold">Entrenamientos pasados</h1>
+    <p class="mt-1 text-sm text-athlium-muted">Historial de sesiones a las que asististe.</p>
+  </header>
+
+  <article
+    class="ath-reveal mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+    style="animation-delay: 90ms"
+  >
+    @if (history().length) {
+      <div class="grid gap-3">
+        @for (item of history(); track item.bookingId) {
+          <div class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 p-3">
+            <p class="font-semibold">{{ item.activityName }}</p>
+            <p class="mt-1 text-sm text-athlium-muted">{{ item.dateLabel }}</p>
+            <p class="text-xs text-athlium-muted">{{ item.scheduleLabel }}</p>
+          </div>
+        }
+      </div>
+    } @else {
+      @if (historyUnavailable()) {
+        <p class="text-sm text-athlium-muted">
+          El historial detallado no esta disponible para el perfil cliente en esta version.
+        </p>
+      } @else {
+        <p class="text-sm text-athlium-muted">Todavía no registrás asistencias.</p>
+      }
+    }
+  </article>
+</section>

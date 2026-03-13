@@ -1,0 +1,34 @@
+<section class="px-4 py-6 text-athlium-text lg:px-8">
+  <header
+    class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Superadmin</p>
+    <h1 class="mt-2 font-title text-3xl font-semibold">Eliminar actividad</h1>
+    <p class="mt-1 text-sm text-athlium-muted">Esta acción eliminará la actividad del listado.</p>
+  </header>
+
+  <article
+    class="mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <p class="text-sm text-athlium-muted">Estas por eliminar:</p>
+    <h2 class="mt-2 font-title text-2xl font-semibold">{{ activity().name }}</h2>
+    <p class="mt-1 text-sm text-athlium-muted">{{ activity().description }}</p>
+
+    <div class="mt-5 flex items-center gap-2">
+      <button
+        type="button"
+        class="rounded-xl border border-red-400/35 bg-red-500/10 px-4 py-2 font-semibold text-red-200 transition hover:bg-red-500/20"
+        (click)="confirmDelete()"
+      >
+        Confirmar eliminación
+      </button>
+      <button
+        type="button"
+        class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 px-4 py-2 font-semibold text-athlium-text transition hover:bg-athlium-surface-2/55"
+        (click)="cancel()"
+      >
+        Cancelar
+      </button>
+    </div>
+  </article>
+</section>

@@ -1,0 +1,214 @@
+<section class="px-4 py-6 text-athlium-text lg:px-8">
+  <header
+    class="ath-reveal rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+  >
+    <div class="grid gap-4 xl:grid-cols-[1fr_auto] xl:items-end">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Agenda</p>
+        <h1 class="mt-2 font-title text-3xl font-semibold">{{ title }}</h1>
+        <p class="mt-1 text-sm text-athlium-muted">
+          Sesiones ordenadas por inicio. El detalle se abre al seleccionar una fila.
+        </p>
+      </div>
+
+      @if (scope === 'org') {
+        <label class="grid gap-1 text-sm xl:w-80">
+          <span class="text-athlium-muted">Sede</span>
+          <select
+            class="ath-select appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            [value]="selectedHeadquartersId()"
+            (change)="onHeadquartersChange($any($event.target).value)"
+          >
+            @for (headquarters of headquarters(); track headquarters.id) {
+              <option [value]="headquarters.id">{{ headquarters.name }}</option>
+            }
+          </select>
+        </label>
+      }
+    </div>
+  </header>
+
+  @if (isLoading()) {
+    <div
+      class="ath-reveal mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
+      style="animation-delay: 80ms"
+    >
+      <div class="space-y-3">
+        @for (item of [1, 2, 3, 4, 5]; track item) {
+          <div class="h-16 rounded-xl bg-athlium-surface-2/60"></div>
+        }
+      </div>
+    </div>
+  } @else if (hasItems()) {
+    <div
+      class="ath-reveal mt-5 overflow-hidden rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 shadow-soft"
+      style="animation-delay: 80ms"
+    >
+      <div class="divide-y divide-athlium-primary/10">
+        @for (session of sessions(); track session.id; let i = $index) {
+          <button
+            type="button"
+            class="ath-reveal group grid w-full gap-3 px-4 py-4 text-left transition hover:bg-athlium-primary-soft/20 sm:grid-cols-[2fr_1fr_1fr_auto] sm:items-center"
+            [style.animation-delay.ms]="i * 26"
+            (click)="openSessionDetail(session.id)"
+          >
+            <div>
+              <div class="flex flex-wrap items-center gap-2">
+                <p class="text-sm font-semibold">{{ dateLabel(session.startsAt) }}</p>
+                <span
+                  class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold"
+                  [class.border-emerald-300/35]="session.status === 'OPEN'"
+                  [class.bg-emerald-500/10]="session.status === 'OPEN'"
+                  [class.text-emerald-200]="session.status === 'OPEN'"
+                  [class.border-amber-300/35]="session.status === 'CLOSED'"
+                  [class.bg-amber-500/10]="session.status === 'CLOSED'"
+                  [class.text-amber-200]="session.status === 'CLOSED'"
+                  [class.border-rose-300/35]="session.status === 'CANCELLED'"
+                  [class.bg-rose-500/10]="session.status === 'CANCELLED'"
+                  [class.text-rose-200]="session.status === 'CANCELLED'"
+                >
+                  {{ statusLabel(session.status) }}
+                </span>
+              </div>
+              <p class="text-xs text-athlium-muted">{{ scheduleLabel(session) }}</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span
+                class="inline-flex rounded-full border border-athlium-primary/20 bg-athlium-primary-soft/35 px-2.5 py-1 text-xs font-semibold"
+              >
+                {{ activityName(session.activityId, session.activityName) }}
+              </span>
+            </div>
+            <div class="text-xs text-athlium-muted">
+              {{ occupancy(session.id) }} / {{ session.maxParticipants }} participantes
+            </div>
+            <div class="text-right">
+              <span
+                class="inline-flex items-center gap-1 rounded-lg border border-athlium-primary/12 bg-athlium-surface-2/30 px-2.5 py-1 text-xs font-medium text-athlium-muted transition group-hover:border-athlium-primary/25 group-hover:text-athlium-text"
+              >
+                Abrir
+                <span class="material-symbols-outlined text-sm leading-none">chevron_right</span>
+              </span>
+            </div>
+          </button>
+        }
+      </div>
+    </div>
+  } @else {
+    <article
+      class="ath-reveal mt-5 rounded-panel border border-athlium-primary/12 bg-athlium-surface/90 p-7 text-center shadow-soft"
+      style="animation-delay: 80ms"
+    >
+      <h3 class="font-title text-2xl font-semibold">No hay sesiones para esta sede</h3>
+    </article>
+  }
+
+  @if (!isLoading()) {
+    <div class="mt-4 flex flex-wrap items-center justify-end gap-2 text-sm text-athlium-muted">
+      <span>Página {{ currentPage() + 1 }}</span>
+      <button
+        type="button"
+        class="rounded-lg border border-athlium-primary/12 px-3 py-1.5 disabled:opacity-45"
+        [disabled]="!canGoPrev()"
+        (click)="previousPage()"
+      >
+        Anterior
+      </button>
+      <button
+        type="button"
+        class="rounded-lg border border-athlium-primary/12 px-3 py-1.5 disabled:opacity-45"
+        [disabled]="!canGoNext()"
+        (click)="nextPage()"
+      >
+        Siguiente
+      </button>
+    </div>
+  }
+
+  @if (selectedSession(); as session) {
+    <div
+      class="fixed inset-0 z-40 grid place-items-center bg-black/65 px-3 py-6"
+      (click)="closeSessionDetail()"
+    >
+      <article
+        class="ath-reveal max-h-full w-full max-w-4xl overflow-auto rounded-panel border border-athlium-primary/12 bg-athlium-surface/95 p-6 shadow-soft"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h2 class="font-title text-2xl font-semibold">Sesión</h2>
+            <p class="mt-1 text-sm text-athlium-muted">Detalle de la sesión seleccionada.</p>
+          </div>
+          <button
+            type="button"
+            class="h-10 w-10 rounded-lg border border-athlium-primary/20 text-xl text-athlium-muted transition hover:text-athlium-text"
+            (click)="closeSessionDetail()"
+          >
+            ×
+          </button>
+        </div>
+
+        <div class="mt-5 grid gap-4 text-sm sm:grid-cols-2">
+          <div>
+            <p class="text-athlium-muted">Fecha</p>
+            <p class="mt-1 font-semibold">{{ dateLabel(session.startsAt) }}</p>
+          </div>
+          <div>
+            <p class="text-athlium-muted">Horario</p>
+            <p class="mt-1 font-semibold">
+              {{ session.startsAt | date: 'HH:mm' }} - {{ sessionEndLabel(session) }}
+            </p>
+          </div>
+          <div>
+            <p class="text-athlium-muted">Actividad</p>
+            <p class="mt-1 font-semibold">
+              {{ activityName(session.activityId, session.activityName) }}
+            </p>
+          </div>
+          <div>
+            <p class="text-athlium-muted">Cupos</p>
+            <p class="mt-1 font-semibold">
+              {{ occupancy(session.id) }} / {{ session.maxParticipants }}
+            </p>
+          </div>
+          <div>
+            <p class="text-athlium-muted">Estado</p>
+            <p class="mt-1 font-semibold">{{ statusLabel(session.status) }}</p>
+          </div>
+        </div>
+
+        <div class="mt-5">
+          <p class="text-sm font-semibold">
+            Participantes ({{ selectedParticipants().length }} / {{ session.maxParticipants }})
+          </p>
+
+          @if (selectedParticipants().length) {
+            <div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              @for (participant of selectedParticipants(); track participant.id) {
+                <article
+                  class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 px-3 py-2"
+                >
+                  <div class="flex items-center gap-3">
+                    <div
+                      class="grid h-10 w-10 place-items-center rounded-full border border-athlium-primary/25 bg-athlium-primary-soft/55 text-xs font-semibold"
+                    >
+                      {{ initials(participant.name) }}
+                    </div>
+                    <div>
+                      <p class="text-sm font-medium">{{ participant.name }}</p>
+                      <p class="text-xs text-athlium-muted">{{ participant.email }}</p>
+                    </div>
+                  </div>
+                </article>
+              }
+            </div>
+          } @else {
+            <p class="mt-2 text-sm text-athlium-muted">
+              Todavía no hay participantes en esta sesión.
+            </p>
+          }
+        </div>
+      </article>
+    </div>
+  }
+</section>
