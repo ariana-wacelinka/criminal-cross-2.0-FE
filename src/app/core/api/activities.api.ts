@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { map, Observable, of } from 'rxjs';
+import { map, Observable, of, shareReplay } from 'rxjs';
 import { Activity, ActivityPageResponse, ApiResponse } from '../domain/models';
 import { API_BASE_URL } from '../http/api-base-url.token';
 import { API_MOCK_MODE } from '../http';
@@ -58,6 +58,15 @@ export class ActivitiesApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
   private readonly apiMockMode = inject(API_MOCK_MODE);
+  private readonly getAllCache = new Map<string, Observable<ActivityPageResponse>>();
+
+  private invalidateGetAllCache(): void {
+    this.getAllCache.clear();
+  }
+
+  private cacheKey(query: GetActivitiesQuery): string {
+    return [query.hqId, query.name ?? '', query.page ?? '', query.size ?? ''].join('|');
+  }
 
   getAll(query: GetActivitiesQuery): Observable<ActivityPageResponse> {
     if (this.apiMockMode) {
@@ -77,11 +86,19 @@ export class ActivitiesApi {
       return of({ content, page, size, totalElements, totalPages });
     }
 
-    return this.http
+    const key = this.cacheKey(query);
+    const cached = this.getAllCache.get(key);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.http
       .get<ApiResponse<ActivityPageResponse> | ActivityPageResponse>(`${this.baseUrl}/activities`, {
         params: toHttpParams(query),
       })
-      .pipe(map(unwrapApiResponse));
+      .pipe(map(unwrapApiResponse), shareReplay(1));
+    this.getAllCache.set(key, request$);
+    return request$;
   }
 
   getById(id: number): Observable<Activity> {
@@ -118,7 +135,13 @@ export class ActivitiesApi {
 
     return this.http
       .post<ApiResponse<Activity> | Activity>(`${this.baseUrl}/activities`, body)
-      .pipe(map(unwrapApiResponse));
+      .pipe(
+        map(unwrapApiResponse),
+        map((activity) => {
+          this.invalidateGetAllCache();
+          return activity;
+        }),
+      );
   }
 
   update(id: number, body: UpdateActivityRequest): Observable<Activity> {
@@ -142,7 +165,13 @@ export class ActivitiesApi {
 
     return this.http
       .put<ApiResponse<Activity> | Activity>(`${this.baseUrl}/activities/${id}`, body)
-      .pipe(map(unwrapApiResponse));
+      .pipe(
+        map(unwrapApiResponse),
+        map((activity) => {
+          this.invalidateGetAllCache();
+          return activity;
+        }),
+      );
   }
 
   remove(id: number): Observable<void> {
@@ -154,6 +183,11 @@ export class ActivitiesApi {
       return of(void 0);
     }
 
-    return this.http.delete<void>(`${this.baseUrl}/activities/${id}`);
+    return this.http.delete<void>(`${this.baseUrl}/activities/${id}`).pipe(
+      map((response) => {
+        this.invalidateGetAllCache();
+        return response;
+      }),
+    );
   }
 }

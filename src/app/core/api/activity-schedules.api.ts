@@ -43,11 +43,55 @@ export interface CreateActivityScheduleRequest {
   scheduledDate?: string;
 }
 
+interface BackendActivityRef {
+  id?: number;
+  name?: string;
+}
+
+interface BackendActivitySchedule {
+  id: number;
+  organizationId: number;
+  headquartersId: number;
+  activityId?: number;
+  activityName?: string;
+  activity?: BackendActivityRef | null;
+  dayOfWeek?: number;
+  weekDays?: string[];
+  startTime: string;
+  durationMinutes: number;
+  active: boolean;
+  schedulerType: string;
+  templateType: string;
+  activeFrom?: string;
+  activeUntil?: string;
+  scheduledDate?: string;
+}
+
 function unwrapApiResponse<T>(response: ApiResponse<T> | T): T {
   if (response && typeof response === 'object' && 'data' in response) {
     return (response as ApiResponse<T>).data;
   }
   return response as T;
+}
+
+function normalizeActivitySchedule(item: BackendActivitySchedule): ActivitySchedule {
+  return {
+    id: item.id,
+    organizationId: item.organizationId,
+    headquartersId: item.headquartersId,
+    activityId: item.activityId ?? item.activity?.id ?? 0,
+    activityName: item.activityName ?? item.activity?.name,
+    dayOfWeek: item.dayOfWeek,
+    weekDays: item.weekDays as WeekDay[] | undefined,
+    startTime: item.startTime,
+    durationMinutes: item.durationMinutes,
+    active: item.active,
+    schedulerType: item.schedulerType as SchedulerType,
+    templateType: item.templateType as SessionTemplateType,
+    activeFrom: item.activeFrom,
+    activeUntil: item.activeUntil,
+    scheduledDate: item.scheduledDate,
+  };
 }
 
 @Injectable({ providedIn: 'root' })
@@ -80,9 +124,9 @@ export class ActivitySchedulesApi {
 
     return this.http
       .post<
-        ApiResponse<ActivitySchedule> | ActivitySchedule
+        ApiResponse<BackendActivitySchedule> | BackendActivitySchedule
       >(`${this.baseUrl}/activity-schedules`, body)
-      .pipe(map(unwrapApiResponse));
+      .pipe(map(unwrapApiResponse), map(normalizeActivitySchedule));
   }
 
   getAll(headquartersId: number): Observable<ActivitySchedule[]> {
@@ -91,13 +135,16 @@ export class ActivitySchedulesApi {
     }
 
     return this.http
-      .get<ApiResponse<ActivitySchedule[]> | ActivitySchedule[]>(
+      .get<ApiResponse<BackendActivitySchedule[]> | BackendActivitySchedule[]>(
         `${this.baseUrl}/activity-schedules`,
         {
           params: toHttpParams({ headquartersId }),
         },
       )
-      .pipe(map(unwrapApiResponse));
+      .pipe(
+        map(unwrapApiResponse),
+        map((items) => items.map(normalizeActivitySchedule)),
+      );
   }
 
   update(id: number, body: CreateActivityScheduleRequest): Observable<ActivitySchedule> {
@@ -127,9 +174,9 @@ export class ActivitySchedulesApi {
 
     return this.http
       .put<
-        ApiResponse<ActivitySchedule> | ActivitySchedule
+        ApiResponse<BackendActivitySchedule> | BackendActivitySchedule
       >(`${this.baseUrl}/activity-schedules/${id}`, body)
-      .pipe(map(unwrapApiResponse));
+      .pipe(map(unwrapApiResponse), map(normalizeActivitySchedule));
   }
 
   remove(id: number): Observable<void> {

@@ -26,6 +26,7 @@ const MOCK_SESSIONS: SessionInstance[] = Array.from({ length: 120 }, (_, index) 
     endsAt: endsAt.toISOString(),
     status: [SessionStatus.OPEN, SessionStatus.CLOSED, SessionStatus.CANCELLED][index % 3],
     source: index % 2 ? SessionSource.SCHEDULER : SessionSource.MANUAL,
+    participants: [],
     maxParticipants: 20,
     waitlistEnabled: true,
     waitlistMaxSize: 10,
@@ -44,11 +45,70 @@ export interface GetSessionsQuery {
   sort?: string;
 }
 
+interface BackendActivityRef {
+  id?: number;
+  name?: string;
+}
+
+interface BackendSessionParticipant {
+  id: number;
+  name: string;
+  lastName?: string;
+  email?: string;
+}
+
+interface BackendSessionInstance {
+  id: number;
+  organizationId: number;
+  headquartersId: number;
+  activityId?: number;
+  activityName?: string;
+  activity?: BackendActivityRef | null;
+  startsAt: string;
+  endsAt: string;
+  status: SessionStatus;
+  source: SessionSource;
+  participants?: BackendSessionParticipant[];
+  maxParticipants: number;
+  waitlistEnabled: boolean;
+  waitlistMaxSize: number;
+  waitlistStrategy: WaitlistStrategy;
+  cancellationMinHoursBeforeStart: number;
+  cancellationAllowLateCancel: boolean;
+}
+
 function unwrapApiResponse<T>(response: ApiResponse<T> | T): T {
   if (response && typeof response === 'object' && 'data' in response) {
     return (response as ApiResponse<T>).data;
   }
   return response as T;
+}
+
+function toBackendPage(page: number | undefined): number | undefined {
+  if (page === undefined || page === null) {
+    return undefined;
+  }
+  return Math.max(1, page + 1);
+}
+
+function normalizeSession(item: BackendSessionInstance | SessionInstance): SessionInstance {
+  const backend = item as BackendSessionInstance;
+  const activityId = backend.activityId ?? backend.activity?.id ?? 0;
+  const activityName = backend.activityName ?? backend.activity?.name;
+
+  return {
+    ...item,
+    activityId,
+    activityName,
+    participants: backend.participants ?? (item as SessionInstance).participants ?? [],
+  };
+}
+
+function normalizeSessionsPage(response: SessionPageResponse): SessionPageResponse {
+  return {
+    ...response,
+    items: (response.items ?? []).map((item) => normalizeSession(item as BackendSessionInstance)),
+  };
 }
 
 @Injectable({ providedIn: 'root' })
@@ -94,9 +154,9 @@ export class SessionsApi {
 
     return this.http
       .get<ApiResponse<SessionPageResponse> | SessionPageResponse>(`${this.baseUrl}/sessions`, {
-        params: toHttpParams(query),
+        params: toHttpParams({ ...query, page: toBackendPage(query.page) }),
       })
-      .pipe(map(unwrapApiResponse));
+      .pipe(map(unwrapApiResponse), map(normalizeSessionsPage));
   }
 
   getById(sessionId: number): Observable<SessionInstance> {
@@ -112,6 +172,7 @@ export class SessionsApi {
           endsAt: new Date().toISOString(),
           status: SessionStatus.OPEN,
           source: SessionSource.MANUAL,
+          participants: [],
           maxParticipants: 0,
           waitlistEnabled: false,
           waitlistMaxSize: 0,
@@ -124,6 +185,9 @@ export class SessionsApi {
 
     return this.http
       .get<ApiResponse<SessionInstance> | SessionInstance>(`${this.baseUrl}/sessions/${sessionId}`)
-      .pipe(map(unwrapApiResponse));
+      .pipe(
+        map(unwrapApiResponse),
+        map((session) => normalizeSession(session as BackendSessionInstance)),
+      );
   }
 }

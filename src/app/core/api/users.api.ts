@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { map, Observable, of } from 'rxjs';
+import { map, Observable, of, shareReplay, tap } from 'rxjs';
 import { ApiResponse, PageResult, Role, User } from '../domain/models';
 import { API_BASE_URL } from '../http/api-base-url.token';
 import { API_MOCK_MODE } from '../http';
@@ -60,6 +60,7 @@ export interface UpdateUserRequest {
   email: string;
   name: string;
   lastName: string;
+  active: boolean;
 }
 
 interface BackendUsersPage<T> {
@@ -148,13 +149,32 @@ export class UsersApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
   private readonly apiMockMode = inject(API_MOCK_MODE);
+  private readonly pageCache = new Map<string, Observable<PageResult<User>>>();
+  private readonly byIdCache = new Map<number, Observable<User>>();
+  private allUsersCache: Observable<User[]> | null = null;
+
+  private invalidateCaches(): void {
+    this.pageCache.clear();
+    this.byIdCache.clear();
+    this.allUsersCache = null;
+  }
+
+  private pageKey(scope: string, page: number, size: number, search?: string): string {
+    return [scope, page, size, search?.trim().toLowerCase() ?? ''].join('|');
+  }
 
   getPage(page: number, size: number, search?: string): Observable<PageResult<User>> {
     if (this.apiMockMode) {
       return of(slicePage(applyUserSearch(MOCK_USERS, search), page, size));
     }
 
-    return this.http
+    const key = this.pageKey('all', page, size, search);
+    const cached = this.pageCache.get(key);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.http
       .get<
         | ApiResponse<PageResult<User> | BackendUsersPage<User>>
         | PageResult<User>
@@ -162,7 +182,9 @@ export class UsersApi {
       >(`${this.baseUrl}/users`, {
         params: toHttpParams({ page: toBackendPage(page), size, search }),
       })
-      .pipe(map(unwrapApiResponse), map(normalizeUsersPage));
+      .pipe(map(unwrapApiResponse), map(normalizeUsersPage), shareReplay(1));
+    this.pageCache.set(key, request$);
+    return request$;
   }
 
   getUsersByOrg(
@@ -179,7 +201,13 @@ export class UsersApi {
       return of(slicePage(filtered, page, size));
     }
 
-    return this.http
+    const key = this.pageKey(`org:${organizationId}`, page, size, search);
+    const cached = this.pageCache.get(key);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.http
       .get<
         | ApiResponse<PageResult<User> | BackendUsersPage<User>>
         | PageResult<User>
@@ -187,7 +215,9 @@ export class UsersApi {
       >(`${this.baseUrl}/users`, {
         params: toHttpParams({ organizationId, page: toBackendPage(page), size, search }),
       })
-      .pipe(map(unwrapApiResponse), map(normalizeUsersPage));
+      .pipe(map(unwrapApiResponse), map(normalizeUsersPage), shareReplay(1));
+    this.pageCache.set(key, request$);
+    return request$;
   }
 
   getUsersByHq(
@@ -204,15 +234,29 @@ export class UsersApi {
       return of(slicePage(filtered, page, size));
     }
 
-    return this.http
+    const key = this.pageKey(`hq:${headquartersId}`, page, size, search);
+    const cached = this.pageCache.get(key);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.http
       .get<
         | ApiResponse<PageResult<User> | BackendUsersPage<User>>
         | PageResult<User>
         | BackendUsersPage<User>
       >(`${this.baseUrl}/users`, {
-        params: toHttpParams({ headquartersId, page: toBackendPage(page), size, search }),
+        params: toHttpParams({
+          headquartersId,
+          headquarterId: headquartersId,
+          page: toBackendPage(page),
+          size,
+          search,
+        }),
       })
-      .pipe(map(unwrapApiResponse), map(normalizeUsersPage));
+      .pipe(map(unwrapApiResponse), map(normalizeUsersPage), shareReplay(1));
+    this.pageCache.set(key, request$);
+    return request$;
   }
 
   getAllUsers(): Observable<User[]> {
@@ -228,9 +272,15 @@ export class UsersApi {
       return of(MOCK_USERS);
     }
 
-    return this.http
+    if (this.allUsersCache) {
+      return this.allUsersCache;
+    }
+
+    const request$ = this.http
       .get<ApiResponse<User[]> | User[]>(`${this.baseUrl}/users`)
-      .pipe(map(unwrapApiResponse));
+      .pipe(map(unwrapApiResponse), shareReplay(1));
+    this.allUsersCache = request$;
+    return request$;
   }
 
   getById(userId: number): Observable<User> {
@@ -249,9 +299,16 @@ export class UsersApi {
       );
     }
 
-    return this.http
+    const cached = this.byIdCache.get(userId);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.http
       .get<ApiResponse<User> | User>(`${this.baseUrl}/users/${userId}`)
-      .pipe(map(unwrapApiResponse));
+      .pipe(map(unwrapApiResponse), shareReplay(1));
+    this.byIdCache.set(userId, request$);
+    return request$;
   }
 
   create(body: CreateUserRequest): Observable<User> {
@@ -270,12 +327,34 @@ export class UsersApi {
       return of(created);
     }
 
-    return this.http
-      .post<ApiResponse<User> | User>(`${this.baseUrl}/users`, body)
-      .pipe(map(unwrapApiResponse));
+    return this.http.post<ApiResponse<User> | User>(`${this.baseUrl}/users`, body).pipe(
+      map(unwrapApiResponse),
+      tap(() => this.invalidateCaches()),
+    );
   }
 
-  updateRoles(userId: number, body: UpdateRolesRequest): Observable<User> {
+  updateRoles(firebaseUid: string, body: UpdateRolesRequest): Observable<User> {
+    if (this.apiMockMode) {
+      const index = MOCK_USERS.findIndex((user) => user.firebaseUid === firebaseUid);
+      const previous = index >= 0 ? MOCK_USERS[index] : MOCK_USERS[0];
+      const updated = { ...previous, firebaseUid, roles: body.roles };
+      if (index >= 0) {
+        MOCK_USERS[index] = updated;
+      }
+      return of(updated);
+    }
+
+    return this.http
+      .put<
+        ApiResponse<User> | User
+      >(`${this.baseUrl}/users/firebase/${encodeURIComponent(firebaseUid)}/roles`, body)
+      .pipe(
+        map(unwrapApiResponse),
+        tap(() => this.invalidateCaches()),
+      );
+  }
+
+  updateRolesById(userId: number, body: UpdateRolesRequest): Observable<User> {
     if (this.apiMockMode) {
       const index = MOCK_USERS.findIndex((user) => user.id === userId);
       const previous = index >= 0 ? MOCK_USERS[index] : MOCK_USERS[0];
@@ -288,7 +367,10 @@ export class UsersApi {
 
     return this.http
       .put<ApiResponse<User> | User>(`${this.baseUrl}/users/${userId}/roles`, body)
-      .pipe(map(unwrapApiResponse));
+      .pipe(
+        map(unwrapApiResponse),
+        tap(() => this.invalidateCaches()),
+      );
   }
 
   update(userId: number, body: UpdateUserRequest): Observable<User> {
@@ -301,6 +383,7 @@ export class UsersApi {
         email: body.email,
         name: body.name,
         lastName: body.lastName,
+        active: body.active,
       };
       if (index >= 0) {
         MOCK_USERS[index] = updated;
@@ -308,9 +391,10 @@ export class UsersApi {
       return of(updated);
     }
 
-    return this.http
-      .put<ApiResponse<User> | User>(`${this.baseUrl}/users/${userId}`, body)
-      .pipe(map(unwrapApiResponse));
+    return this.http.put<ApiResponse<User> | User>(`${this.baseUrl}/users/${userId}`, body).pipe(
+      map(unwrapApiResponse),
+      tap(() => this.invalidateCaches()),
+    );
   }
 
   assignToHeadquarters(firebaseUid: string, headquartersId: number): Observable<User> {
@@ -336,7 +420,10 @@ export class UsersApi {
       .post<
         ApiResponse<User> | User
       >(`${this.baseUrl}/users/firebase/${encodeURIComponent(firebaseUid)}/headquarters/${headquartersId}`, {})
-      .pipe(map(unwrapApiResponse));
+      .pipe(
+        map(unwrapApiResponse),
+        tap(() => this.invalidateCaches()),
+      );
   }
 
   remove(userId: number): Observable<void> {
@@ -348,6 +435,8 @@ export class UsersApi {
       return of(void 0);
     }
 
-    return this.http.delete<void>(`${this.baseUrl}/users/${userId}`);
+    return this.http
+      .delete<void>(`${this.baseUrl}/users/${userId}`)
+      .pipe(tap(() => this.invalidateCaches()));
   }
 }

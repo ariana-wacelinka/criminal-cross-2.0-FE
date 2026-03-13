@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { map, Observable, of } from 'rxjs';
+import { map, Observable, of, shareReplay, tap } from 'rxjs';
 import { ApiResponse, Organization, PageResult } from '../domain/models';
 import { API_BASE_URL } from '../http/api-base-url.token';
 import { API_MOCK_MODE } from '../http';
@@ -75,6 +75,15 @@ export class OrganizationsApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
   private readonly apiMockMode = inject(API_MOCK_MODE);
+  private readonly pageCache = new Map<string, Observable<PageResult<Organization>>>();
+  private readonly byIdCache = new Map<number, Observable<Organization>>();
+  private allCache: Observable<Organization[]> | null = null;
+
+  private invalidateCaches(): void {
+    this.pageCache.clear();
+    this.byIdCache.clear();
+    this.allCache = null;
+  }
 
   getPage(page: number, size: number): Observable<PageResult<Organization>> {
     if (this.apiMockMode) {
@@ -90,7 +99,13 @@ export class OrganizationsApi {
       });
     }
 
-    return this.http
+    const key = `${page}|${size}`;
+    const cached = this.pageCache.get(key);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.http
       .get<
         | ApiResponse<PageResult<Organization> | Organization[]>
         | PageResult<Organization>
@@ -101,7 +116,10 @@ export class OrganizationsApi {
       .pipe(
         map(unwrapApiResponse),
         map((response) => normalizeOrganizationsPage(response, page, size)),
+        shareReplay(1),
       );
+    this.pageCache.set(key, request$);
+    return request$;
   }
 
   getAll(): Observable<Organization[]> {
@@ -109,9 +127,15 @@ export class OrganizationsApi {
       return of(MOCK_ORGANIZATIONS);
     }
 
-    return this.http
+    if (this.allCache) {
+      return this.allCache;
+    }
+
+    const request$ = this.http
       .get<ApiResponse<Organization[]> | Organization[]>(`${this.baseUrl}/organizations`)
-      .pipe(map(unwrapApiResponse));
+      .pipe(map(unwrapApiResponse), shareReplay(1));
+    this.allCache = request$;
+    return request$;
   }
 
   getById(id: number): Observable<Organization> {
@@ -120,9 +144,16 @@ export class OrganizationsApi {
       return of(organization ?? { id, name: 'Organizacion no encontrada' });
     }
 
-    return this.http
+    const cached = this.byIdCache.get(id);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.http
       .get<ApiResponse<Organization> | Organization>(`${this.baseUrl}/organizations/${id}`)
-      .pipe(map(unwrapApiResponse));
+      .pipe(map(unwrapApiResponse), shareReplay(1));
+    this.byIdCache.set(id, request$);
+    return request$;
   }
 
   create(body: UpsertOrganizationRequest): Observable<Organization> {
@@ -134,7 +165,10 @@ export class OrganizationsApi {
 
     return this.http
       .post<ApiResponse<Organization> | Organization>(`${this.baseUrl}/organizations`, body)
-      .pipe(map(unwrapApiResponse));
+      .pipe(
+        map(unwrapApiResponse),
+        tap(() => this.invalidateCaches()),
+      );
   }
 
   update(id: number, body: UpsertOrganizationRequest): Observable<Organization> {
@@ -149,7 +183,10 @@ export class OrganizationsApi {
 
     return this.http
       .put<ApiResponse<Organization> | Organization>(`${this.baseUrl}/organizations/${id}`, body)
-      .pipe(map(unwrapApiResponse));
+      .pipe(
+        map(unwrapApiResponse),
+        tap(() => this.invalidateCaches()),
+      );
   }
 
   remove(id: number): Observable<void> {
@@ -161,6 +198,8 @@ export class OrganizationsApi {
       return of(void 0);
     }
 
-    return this.http.delete<void>(`${this.baseUrl}/organizations/${id}`);
+    return this.http
+      .delete<void>(`${this.baseUrl}/organizations/${id}`)
+      .pipe(tap(() => this.invalidateCaches()));
   }
 }
