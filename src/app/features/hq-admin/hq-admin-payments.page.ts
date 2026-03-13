@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { firstValueFrom, switchMap } from 'rxjs';
+import { firstValueFrom, of, switchMap } from 'rxjs';
 import { ActivitiesApi } from '../../core/api/activities.api';
 import { ClientPackagesApi } from '../../core/api/client-packages.api';
+import { HeadquartersApi } from '../../core/api/headquarters.api';
 import { CreatePaymentRequest, PaymentListItem, PaymentsApi } from '../../core/api/payments.api';
 import { UsersApi } from '../../core/api/users.api';
 import { PaymentMethod } from '../../core/domain/models';
@@ -31,9 +32,16 @@ export class HqAdminPaymentsPage {
   private readonly usersApi = inject(UsersApi);
   private readonly activitiesApi = inject(ActivitiesApi);
   private readonly clientPackagesApi = inject(ClientPackagesApi);
+  private readonly headquartersApi = inject(HeadquartersApi);
   private readonly toast = inject(UiToastService);
 
-  private readonly headquartersId = 101;
+  private readonly accessibleHeadquarters = toSignal(this.headquartersApi.getAll(), {
+    initialValue: [],
+  });
+  private readonly headquartersId = computed(() => this.accessibleHeadquarters()[0]?.id ?? null);
+  private readonly organizationId = computed(
+    () => this.accessibleHeadquarters()[0]?.organizationId ?? null,
+  );
   private readonly pageSize = 12;
   private readonly paymentMethods = [
     PaymentMethod.CASH,
@@ -50,10 +58,18 @@ export class HqAdminPaymentsPage {
   protected readonly showActivityOptions = signal(false);
 
   protected readonly usersPage = toSignal(
-    toObservable(this.userQuery).pipe(
-      switchMap((search) =>
-        this.usersApi.getUsersByHq(this.headquartersId, 0, 20, search.trim() || undefined),
-      ),
+    toObservable(
+      computed(() => ({
+        headquartersId: this.headquartersId(),
+        search: this.userQuery().trim(),
+      })),
+    ).pipe(
+      switchMap(({ headquartersId, search }) => {
+        if (!headquartersId) {
+          return of({ items: [], total: 0, page: 0, size: 20 });
+        }
+        return this.usersApi.getUsersByHq(headquartersId, 0, 20, search || undefined);
+      }),
     ),
     { initialValue: null },
   );
@@ -69,22 +85,37 @@ export class HqAdminPaymentsPage {
   });
 
   protected readonly activitiesPage = toSignal(
-    toObservable(this.activityQuery).pipe(
-      switchMap((name) =>
-        this.activitiesApi.getAll({
-          hqId: this.headquartersId,
-          name: name.trim() || undefined,
+    toObservable(
+      computed(() => ({
+        headquartersId: this.headquartersId(),
+        name: this.activityQuery().trim(),
+      })),
+    ).pipe(
+      switchMap(({ headquartersId, name }) => {
+        if (!headquartersId) {
+          return of({ content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
+        }
+
+        return this.activitiesApi.getAll({
+          hqId: headquartersId,
+          name: name || undefined,
           page: 0,
           size: 20,
-        }),
-      ),
+        });
+      }),
     ),
     { initialValue: null },
   );
   protected readonly activities = computed(() => this.activitiesPage()?.content ?? []);
 
   protected readonly paymentsByHqPage = toSignal(
-    this.paymentsApi.getAllByHq(this.headquartersId, 0, this.pageSize),
+    toObservable(this.headquartersId).pipe(
+      switchMap((headquartersId) =>
+        headquartersId
+          ? this.paymentsApi.getAllByHq(headquartersId, 0, this.pageSize)
+          : of({ items: [], total: 0, page: 0, size: this.pageSize }),
+      ),
+    ),
     { initialValue: null },
   );
   private readonly createdPayments = signal<RecentPaymentItem[]>([]);
@@ -213,12 +244,20 @@ export class HqAdminPaymentsPage {
     const amount = Number(this.form.controls.amount.value);
     const paymentMethod = this.form.controls.paymentMethod.value;
 
+    const headquartersId = this.headquartersId();
+    const organizationId = this.organizationId();
+    if (!headquartersId || !organizationId) {
+      this.toast.error('No se pudo resolver sede/organización para registrar el pago.');
+      this.isSubmitting.set(false);
+      return;
+    }
+
     const paymentPayload: CreatePaymentRequest = {
       amount: amount.toFixed(2),
       paymentMethod,
       clientId: userId,
-      headquartersId: this.headquartersId,
-      organizationId: 1,
+      headquartersId,
+      organizationId,
     };
 
     try {
