@@ -1,9 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { switchMap } from 'rxjs';
+import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { ActivitiesApi } from '../../core/api/activities.api';
+import { AuthSessionService } from '../../core/auth';
+import { GymConfigApi } from '../../core/api/gym-config.api';
 import { HeadquartersApi } from '../../core/api/headquarters.api';
+import { Role } from '../../core/domain/models';
 
 @Component({
   selector: 'app-superadmin-headquarters-activities-page',
@@ -15,6 +18,8 @@ export class SuperadminHeadquartersActivitiesPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly activitiesApi = inject(ActivitiesApi);
+  private readonly authSession = inject(AuthSessionService);
+  private readonly gymConfigApi = inject(GymConfigApi);
   private readonly headquartersApi = inject(HeadquartersApi);
 
   private readonly headquartersId = Number(this.route.snapshot.paramMap.get('headquartersId'));
@@ -30,7 +35,7 @@ export class SuperadminHeadquartersActivitiesPage {
   }));
 
   protected readonly headquarters = toSignal(this.headquartersApi.getById(this.headquartersId), {
-    initialValue: { id: this.headquartersId, organizationId: 0, name: 'Cargando...' },
+    initialValue: null,
   });
 
   protected readonly activitiesPage = toSignal(
@@ -47,6 +52,38 @@ export class SuperadminHeadquartersActivitiesPage {
     { initialValue: null },
   );
 
+  private readonly activityCapacityMap = toSignal(
+    toObservable(
+      computed(() => ({
+        organizationId: this.headquarters()?.organizationId ?? 0,
+        activities: this.activities(),
+      })),
+    ).pipe(
+      switchMap(({ organizationId, activities }) => {
+        if (!organizationId || !activities.length) {
+          return of<Record<number, number | null>>({});
+        }
+
+        return forkJoin(
+          activities.map((activity) =>
+            this.gymConfigApi
+              .getEffective({
+                organizationId,
+                headquartersId: this.headquartersId,
+                activityId: activity.id,
+              })
+              .pipe(
+                map((config) => [activity.id, config.maxParticipants ?? null] as const),
+                catchError(() => of([activity.id, null] as const)),
+              ),
+          ),
+        ).pipe(map((entries) => Object.fromEntries(entries)));
+      }),
+    ),
+    { initialValue: {} as Record<number, number | null> },
+  );
+
+  protected readonly isHeadquartersLoading = computed(() => this.headquarters() === null);
   protected readonly isLoading = computed(() => !this.activitiesPage());
   protected readonly activities = computed(() => this.activitiesPage()?.content ?? []);
   protected readonly hasItems = computed(() => this.activities().length > 0);
@@ -64,8 +101,19 @@ export class SuperadminHeadquartersActivitiesPage {
     return `${start}-${end} de ${page.totalElements}`;
   });
 
+  private readonly headquartersListPath = computed(() => {
+    const role = this.authSession.user()?.roles[0];
+    if (role === Role.SUPERADMIN) {
+      return '/headquarters';
+    }
+    if (role === Role.PROFESSOR) {
+      return '/professor/dashboard';
+    }
+    return '/org-owner/headquarters';
+  });
+
   protected async goBack(): Promise<void> {
-    await this.router.navigateByUrl('/headquarters');
+    await this.router.navigateByUrl(this.headquartersListPath());
   }
 
   protected async createActivity(): Promise<void> {
@@ -117,5 +165,10 @@ export class SuperadminHeadquartersActivitiesPage {
     this.searchQuery.set(value);
     this.currentPage.set(0);
     this.openActivityMenuId.set(null);
+  }
+
+  protected activityCapacity(activityId: number): string {
+    const capacity = this.activityCapacityMap()[activityId];
+    return capacity == null ? '-' : String(capacity);
   }
 }
