@@ -127,6 +127,7 @@ export interface SessionInstance {
   headquartersId: number;
   activityId: number;
   activityName?: string;
+  participants?: SessionParticipant[];
   startsAt: IsoInstant;
   endsAt: IsoInstant;
   status: SessionStatus;
@@ -137,6 +138,13 @@ export interface SessionInstance {
   waitlistStrategy: WaitlistStrategy;
   cancellationMinHoursBeforeStart: number;
   cancellationAllowLateCancel: boolean;
+}
+
+export interface SessionParticipant {
+  id: number;
+  name: string;
+  lastName?: string;
+  email?: string;
 }
 
 export interface ClientPackageCredit {
