@@ -1,7 +1,14 @@
 import { HttpClient, HttpContext } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
-import { ApiResponse, AuthProvider, AuthenticatedUser, Role } from '../domain/models';
+import {
+  ApiResponse,
+  AuthProvider,
+  AuthenticatedUser,
+  Headquarters,
+  Organization,
+  Role,
+} from '../domain/models';
 import { API_BASE_URL } from '../http/api-base-url.token';
 import { SKIP_AUTH, SKIP_REFRESH } from '../http/request-context.tokens';
 
@@ -23,6 +30,17 @@ export interface AuthSessionResponse {
   user: AuthenticatedUser;
 }
 
+interface BackendOrganizationSummary {
+  id: number;
+  name: string;
+  headquarters?: BackendHeadquartersSummary[];
+}
+
+interface BackendHeadquartersSummary {
+  id: number;
+  name: string;
+}
+
 interface BackendAuthenticatedUser {
   firebaseUid: string;
   email: string;
@@ -31,6 +49,9 @@ interface BackendAuthenticatedUser {
   provider: string;
   userId: number;
   roles: string[];
+  organization?: BackendOrganizationSummary;
+  headquarters?: BackendHeadquartersSummary[];
+  registered?: boolean;
   active: boolean;
 }
 
@@ -56,7 +77,42 @@ function unwrapApiResponse<T>(response: ApiResponse<T> | T): T {
   return response as T;
 }
 
+type HeadquartersSummary = Pick<Headquarters, 'id' | 'name'>;
+
+function normalizeHeadquarters(list?: BackendHeadquartersSummary[] | null): HeadquartersSummary[] {
+  if (!Array.isArray(list)) {
+    return [];
+  }
+
+  return list
+    .map((hq): HeadquartersSummary | null => {
+      if (!hq || typeof hq.id !== 'number') {
+        return null;
+      }
+      return {
+        id: hq.id,
+        name: hq.name ?? `Sede ${hq.id}`,
+      };
+    })
+    .filter((hq): hq is HeadquartersSummary => !!hq);
+}
+
+function mapOrganization(org?: BackendOrganizationSummary | null): Organization | undefined {
+  if (!org || typeof org.id !== 'number') {
+    return undefined;
+  }
+
+  return {
+    id: org.id,
+    name: org.name ?? `Organización ${org.id}`,
+    headquarters: undefined,
+  };
+}
+
 function mapUser(user: BackendAuthenticatedUser): AuthenticatedUser {
+  const directHeadquarters = normalizeHeadquarters(user.headquarters);
+  const organizationHeadquarters = normalizeHeadquarters(user.organization?.headquarters);
+
   return {
     firebaseUid: user.firebaseUid,
     email: user.email,
@@ -65,6 +121,8 @@ function mapUser(user: BackendAuthenticatedUser): AuthenticatedUser {
     provider: user.provider as AuthProvider,
     userId: user.userId,
     roles: (user.roles ?? []) as Role[],
+    organization: mapOrganization(user.organization),
+    headquarters: directHeadquarters.length ? directHeadquarters : organizationHeadquarters,
     active: user.active,
   };
 }

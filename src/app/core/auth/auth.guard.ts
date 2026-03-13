@@ -41,21 +41,23 @@ export const roleGuard: CanActivateFn = (route): boolean | UrlTree => {
     return true;
   }
 
-  const primaryRole = userRoles[0];
-  switch (primaryRole) {
-    case Role.SUPERADMIN:
-      return router.createUrlTree(['/dashboard']);
-    case Role.ORG_OWNER:
-      return router.createUrlTree(['/org-owner/dashboard']);
-    case Role.ORG_ADMIN:
-      return router.createUrlTree(['/hq-admin/dashboard']);
-    case Role.PROFESSOR:
-      return router.createUrlTree(['/professor/dashboard']);
-    case Role.CLIENT:
-      return router.createUrlTree(['/client/dashboard']);
-    default:
-      return router.createUrlTree(['/dashboard']);
+  if (userRoles.includes(Role.SUPERADMIN)) {
+    return router.createUrlTree(['/dashboard']);
   }
+  if (userRoles.includes(Role.ORG_OWNER)) {
+    return router.createUrlTree(['/org-owner/dashboard']);
+  }
+  if (userRoles.includes(Role.ORG_ADMIN)) {
+    return router.createUrlTree(['/hq-admin/dashboard']);
+  }
+  if (userRoles.includes(Role.PROFESSOR)) {
+    return router.createUrlTree(['/professor/dashboard']);
+  }
+  if (userRoles.includes(Role.CLIENT)) {
+    return router.createUrlTree(['/client/dashboard']);
+  }
+
+  return router.createUrlTree(['/dashboard']);
 };
 
 export const clientContextGuard: CanActivateFn = (): boolean | UrlTree => {

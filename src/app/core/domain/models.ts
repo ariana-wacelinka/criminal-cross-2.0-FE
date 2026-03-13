@@ -202,6 +202,8 @@ export interface AuthenticatedUser {
   provider: AuthProvider;
   userId: number;
   roles: Role[];
+  organization?: Organization;
+  headquarters?: Pick<Headquarters, 'id' | 'name'>[];
   active: boolean;
 }
 

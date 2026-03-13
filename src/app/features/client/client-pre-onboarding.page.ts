@@ -6,7 +6,11 @@ import { HeadquartersApi } from '../../core/api/headquarters.api';
 import { OrganizationsApi } from '../../core/api/organizations.api';
 import { UsersApi } from '../../core/api/users.api';
 import { AuthSessionService } from '../../core/auth';
-import { ClientContextService } from '../../core/client-context/client-context.service';
+import {
+  ClientContextSelection,
+  ClientContextService,
+} from '../../core/client-context/client-context.service';
+import { AuthenticatedUser, Role } from '../../core/domain/models';
 import { UiToastService } from '../../core/ui/toast.service';
 
 @Component({
@@ -58,12 +62,51 @@ export class ClientPreOnboardingPage {
   );
 
   constructor() {
+    const user = this.authSession.user();
+
+    if (!user) {
+      void this.router.navigateByUrl('/login');
+      return;
+    }
+
+    if (!this.isClient(user) || user.roles.includes(Role.SUPERADMIN)) {
+      void this.router.navigateByUrl('/dashboard');
+      return;
+    }
+
     const existing = this.clientContext.current();
     if (existing) {
       this.selectedOrganizationId.set(existing.organizationId);
       this.selectedHeadquartersId.set(existing.headquartersId);
       void this.router.navigateByUrl('/client/dashboard');
+      return;
     }
+
+    const inferred = this.inferSelectionFromUser(user);
+    if (inferred) {
+      this.clientContext.save(inferred);
+      this.selectedOrganizationId.set(inferred.organizationId);
+      this.selectedHeadquartersId.set(inferred.headquartersId);
+      void this.router.navigateByUrl('/client/dashboard');
+      return;
+    }
+
+    this.selectedOrganizationId.set(user.organization?.id ?? null);
+  }
+
+  private isClient(user: AuthenticatedUser): boolean {
+    return Array.isArray(user.roles) && user.roles.includes(Role.CLIENT);
+  }
+
+  private inferSelectionFromUser(user: AuthenticatedUser): ClientContextSelection | null {
+    const organizationId = user.organization?.id ?? null;
+    const headquartersId = user.headquarters?.[0]?.id ?? null;
+
+    if (!organizationId || !headquartersId) {
+      return null;
+    }
+
+    return { organizationId, headquartersId };
   }
 
   protected selectOrganization(organizationId: number): void {

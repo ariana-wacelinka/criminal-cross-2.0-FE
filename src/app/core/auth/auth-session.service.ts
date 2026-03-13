@@ -101,6 +101,16 @@ export class AuthSessionService {
       provider: AuthProvider.EMAIL,
       userId: 10,
       roles: [role],
+      organization: role === Role.CLIENT ? { id: 1, name: 'Demo Org' } : undefined,
+      headquarters:
+        role === Role.CLIENT
+          ? [
+              {
+                id: 101,
+                name: 'Demo Sede',
+              },
+            ]
+          : undefined,
       active: true,
     };
 

@@ -2,6 +2,25 @@ import { Injectable, inject } from '@angular/core';
 import { AuthSessionService } from '../auth/auth-session.service';
 import { Role } from '../domain/models';
 
+function fromUserDefaults(user: {
+  organization?: { id: number } | null;
+  headquarters?: { id: number }[] | null;
+}): ClientContextSelection | null {
+  if (!user.organization?.id || !user.headquarters?.length) {
+    return null;
+  }
+
+  const firstHq = user.headquarters[0];
+  if (!firstHq?.id) {
+    return null;
+  }
+
+  return {
+    organizationId: user.organization.id,
+    headquartersId: firstHq.id,
+  };
+}
+
 export interface ClientContextSelection {
   organizationId: number;
   headquartersId: number;
@@ -19,20 +38,20 @@ export class ClientContextService {
 
     const raw = localStorage.getItem(this.storageKey(user.userId));
     if (!raw) {
-      return null;
+      return fromUserDefaults(user);
     }
 
     try {
       const parsed = JSON.parse(raw) as Partial<ClientContextSelection>;
       if (!Number.isFinite(parsed.organizationId) || !Number.isFinite(parsed.headquartersId)) {
-        return null;
+        return fromUserDefaults(user) ?? null;
       }
       return {
         organizationId: Number(parsed.organizationId),
         headquartersId: Number(parsed.headquartersId),
       };
     } catch {
-      return null;
+      return fromUserDefaults(user);
     }
   }
 
