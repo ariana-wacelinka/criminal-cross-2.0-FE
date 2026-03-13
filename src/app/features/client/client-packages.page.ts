@@ -3,6 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivitiesApi } from '../../core/api/activities.api';
 import { ClientPackagesApi } from '../../core/api/client-packages.api';
 import { AuthSessionService } from '../../core/auth';
+import { ClientContextService } from '../../core/client-context/client-context.service';
 import { ClientPackage } from '../../core/domain/models';
 
 @Component({
@@ -15,8 +16,9 @@ export class ClientPackagesPage {
   private readonly authSession = inject(AuthSessionService);
   private readonly clientPackagesApi = inject(ClientPackagesApi);
   private readonly activitiesApi = inject(ActivitiesApi);
+  private readonly clientContext = inject(ClientContextService);
   private readonly userId = this.authSession.user()?.userId ?? 10;
-  private readonly headquartersId = 101;
+  private readonly headquartersId = this.clientContext.current()?.headquartersId ?? 101;
 
   protected readonly activitiesCatalog = toSignal(
     this.activitiesApi.getAll({ hqId: this.headquartersId, page: 0, size: 200 }),
@@ -26,11 +28,17 @@ export class ClientPackagesPage {
   );
 
   protected readonly packages = toSignal(this.clientPackagesApi.getAll(this.userId), {
-    initialValue: [],
+    initialValue: null,
   });
-  protected readonly activePackages = computed(() => this.packages().filter((item) => item.active));
+  protected readonly isLoading = computed(
+    () => this.packages() === null || this.activitiesCatalog() === null,
+  );
+  protected readonly packageItems = computed(() => this.packages() ?? []);
+  protected readonly activePackages = computed(() =>
+    this.packageItems().filter((item) => item.active),
+  );
   protected readonly previousPackages = computed(() =>
-    this.packages().filter((item) => !item.active),
+    this.packageItems().filter((item) => !item.active),
   );
 
   protected packageTitle(pack: ClientPackage): string {
@@ -51,9 +59,13 @@ export class ClientPackagesPage {
     return pack.credits.reduce((total, credit) => total + credit.tokens, 0);
   }
 
-  private activityName(activityId: number, activityName?: string | null): string {
+  private activityName(activityId?: number | null, activityName?: string | null): string {
     if (activityName?.trim()) {
       return activityName;
+    }
+
+    if (activityId == null || !Number.isFinite(activityId)) {
+      return 'Actividad';
     }
 
     return (
