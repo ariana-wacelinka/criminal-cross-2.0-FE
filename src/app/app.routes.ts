@@ -7,7 +7,7 @@ const SUPERADMIN_ONLY = [Role.SUPERADMIN];
 const ORG_OWNER_OR_ADMIN = [Role.ORG_OWNER, Role.ORG_ADMIN];
 const HQ_ADMIN_ONLY = [Role.ORG_ADMIN];
 const PROFESSOR_ONLY = [Role.PROFESSOR];
-const HQ_STAFF = [Role.ORG_OWNER, Role.ORG_ADMIN, Role.PROFESSOR];
+const HQ_STAFF = [Role.SUPERADMIN, Role.ORG_OWNER, Role.ORG_ADMIN, Role.PROFESSOR];
 const USER_MANAGERS = [Role.SUPERADMIN, Role.ORG_OWNER, Role.ORG_ADMIN, Role.PROFESSOR];
 
 export const routes: Routes = [

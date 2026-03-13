@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { of, switchMap } from 'rxjs';
 import { ActivitiesApi } from '../../core/api/activities.api';
+import { HeadquartersApi } from '../../core/api/headquarters.api';
 import { UsersApi } from '../../core/api/users.api';
 
 @Component({
@@ -14,43 +16,68 @@ import { UsersApi } from '../../core/api/users.api';
 export class ProfessorPage {
   private readonly usersApi = inject(UsersApi);
   private readonly activitiesApi = inject(ActivitiesApi);
-  private readonly headquartersId = 101;
-
-  protected readonly usersPage = toSignal(this.usersApi.getUsersByHq(this.headquartersId, 0, 1), {
-    initialValue: null,
+  private readonly headquartersApi = inject(HeadquartersApi);
+  private readonly accessibleHeadquarters = toSignal(this.headquartersApi.getAll(), {
+    initialValue: [],
   });
+  private readonly headquartersId = computed(() => this.accessibleHeadquarters()[0]?.id ?? null);
+
+  protected readonly usersPage = toSignal(
+    toObservable(this.headquartersId).pipe(
+      switchMap((headquartersId) =>
+        headquartersId
+          ? this.usersApi.getUsersByHq(headquartersId, 0, 1)
+          : of({ items: [], total: 0, page: 0, size: 1 }),
+      ),
+    ),
+    { initialValue: null },
+  );
   protected readonly activitiesPage = toSignal(
-    this.activitiesApi.getAll({ hqId: this.headquartersId, page: 0, size: 1 }),
+    toObservable(this.headquartersId).pipe(
+      switchMap((headquartersId) =>
+        headquartersId
+          ? this.activitiesApi.getAll({ hqId: headquartersId, page: 0, size: 1 })
+          : of({ content: [], page: 0, size: 1, totalElements: 0, totalPages: 0 }),
+      ),
+    ),
     { initialValue: null },
   );
 
   protected readonly usersCount = computed(() => this.usersPage()?.total ?? 0);
   protected readonly activitiesCount = computed(() => this.activitiesPage()?.totalElements ?? 0);
 
-  protected readonly quickLinks = [
-    {
-      title: 'Usuarios',
-      description: 'Ver y editar usuarios de la sede.',
-      path: '/professor/users',
-      icon: 'group',
-    },
-    {
-      title: 'Actividades',
-      description: 'Consultar actividades disponibles en la sede.',
-      path: '/headquarters/101/activities',
-      icon: 'fitness_center',
-    },
-    {
-      title: 'Agenda',
-      description: 'Revisar sesiones y participantes.',
-      path: '/professor/agenda',
-      icon: 'event_note',
-    },
-    {
-      title: 'Horarios',
-      description: 'Consultar grilla horaria de actividades.',
-      path: '/professor/schedules',
-      icon: 'schedule',
-    },
-  ] as const;
+  private readonly activitiesPath = computed(() => {
+    const headquartersId = this.headquartersId();
+    return headquartersId ? `/headquarters/${headquartersId}/activities` : '/professor/dashboard';
+  });
+
+  protected readonly quickLinks = computed(
+    () =>
+      [
+        {
+          title: 'Usuarios',
+          description: 'Ver y editar usuarios de la sede.',
+          path: '/professor/users',
+          icon: 'group',
+        },
+        {
+          title: 'Actividades',
+          description: 'Consultar actividades disponibles en la sede.',
+          path: this.activitiesPath(),
+          icon: 'fitness_center',
+        },
+        {
+          title: 'Agenda',
+          description: 'Revisar sesiones y participantes.',
+          path: '/professor/agenda',
+          icon: 'event_note',
+        },
+        {
+          title: 'Horarios',
+          description: 'Consultar grilla horaria de actividades.',
+          path: '/professor/schedules',
+          icon: 'schedule',
+        },
+      ] as const,
+  );
 }

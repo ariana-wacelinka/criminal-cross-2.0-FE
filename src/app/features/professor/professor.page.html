@@ -31,7 +31,7 @@
     </p>
 
     <div class="mt-4 grid gap-3 md:grid-cols-2">
-      @for (item of quickLinks; track item.path) {
+      @for (item of quickLinks(); track item.path) {
         <a
           class="group rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 p-4 transition hover:border-athlium-primary/28 hover:bg-athlium-primary-soft/25"
           [routerLink]="item.path"

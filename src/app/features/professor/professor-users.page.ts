@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { switchMap } from 'rxjs';
+import { of, switchMap } from 'rxjs';
+import { HeadquartersApi } from '../../core/api/headquarters.api';
 import { UsersApi } from '../../core/api/users.api';
 
 @Component({
@@ -13,21 +14,28 @@ import { UsersApi } from '../../core/api/users.api';
 export class ProfessorUsersPage {
   private readonly router = inject(Router);
   private readonly usersApi = inject(UsersApi);
-  private readonly headquartersId = 101;
+  private readonly headquartersApi = inject(HeadquartersApi);
+  private readonly accessibleHeadquarters = toSignal(this.headquartersApi.getAll(), {
+    initialValue: [],
+  });
+  private readonly headquartersId = computed(() => this.accessibleHeadquarters()[0]?.id ?? null);
   protected readonly openUserMenuId = signal<number | null>(null);
   protected readonly currentPage = signal(0);
   protected readonly searchQuery = signal('');
   protected readonly pageSize = 10;
 
   private readonly usersRequest = computed(() => ({
+    headquartersId: this.headquartersId(),
     page: this.currentPage(),
     search: this.searchQuery().trim(),
   }));
 
   protected readonly usersPage = toSignal(
     toObservable(this.usersRequest).pipe(
-      switchMap(({ page, search }) =>
-        this.usersApi.getUsersByHq(this.headquartersId, page, this.pageSize, search || undefined),
+      switchMap(({ headquartersId, page, search }) =>
+        headquartersId
+          ? this.usersApi.getUsersByHq(headquartersId, page, this.pageSize, search || undefined)
+          : of({ items: [], total: 0, page: 0, size: this.pageSize }),
       ),
     ),
     { initialValue: null },
