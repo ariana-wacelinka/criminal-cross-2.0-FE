@@ -9,7 +9,34 @@ import { ClientPackage } from '../../core/domain/models';
 @Component({
   selector: 'app-client-packages-page',
   templateUrl: './client-packages.page.html',
-  styles: [':host { display: block; }'],
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+
+      .package-header {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+
+      .package-title {
+        font-size: 0.95rem;
+        line-height: 1.35;
+        text-wrap: pretty;
+        overflow-wrap: anywhere;
+      }
+
+      .package-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+    `,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ClientPackagesPage {
@@ -42,35 +69,46 @@ export class ClientPackagesPage {
   );
 
   protected packageTitle(pack: ClientPackage): string {
-    const activityNames = pack.credits
-      .map((credit) => this.activityName(credit.activityId, credit.activityName))
-      .filter((name) => !!name);
+    const credits = pack.credits ?? [];
 
-    if (!activityNames.length) {
-      return `Paquete #${pack.id}`;
+    if (!credits.length) {
+      return 'Paquete · Sin actividades asignadas';
     }
 
-    const preview = activityNames.slice(0, 2).join(' + ');
-    const label = activityNames.length > 2 ? `${preview} + ...` : preview;
-    return `Paquete ${label}`;
+    const labels = credits.map((credit, index) => {
+      const resolvedName = this.activityName(credit.activityId, credit.activityName);
+      if (resolvedName) {
+        return resolvedName;
+      }
+      return `Actividad sin nombre ${index + 1}`;
+    });
+
+    const hasNamedActivities = labels.some((label) => !label.startsWith('Actividad sin nombre'));
+    const joinedActivities = labels.join(' + ');
+    const totalSuffix = !hasNamedActivities
+      ? ` (${labels.length} ${labels.length === 1 ? 'actividad' : 'actividades'})`
+      : '';
+
+    return `Paquete · ${joinedActivities}${totalSuffix}`;
   }
 
   protected totalTokens(pack: ClientPackage): number {
     return pack.credits.reduce((total, credit) => total + credit.tokens, 0);
   }
 
-  private activityName(activityId?: number | null, activityName?: string | null): string {
+  private activityName(activityId?: number | null, activityName?: string | null): string | null {
     if (activityName?.trim()) {
-      return activityName;
+      return activityName.trim();
     }
 
     if (activityId == null || !Number.isFinite(activityId)) {
-      return 'Actividad';
+      return null;
     }
 
-    return (
-      this.activitiesCatalog()?.content.find((activity) => activity.id === activityId)?.name ??
-      `Actividad #${activityId}`
-    );
+    const catalogName = this.activitiesCatalog()
+      ?.content.find((activity) => activity.id === activityId)
+      ?.name?.trim();
+
+    return catalogName?.length ? catalogName : null;
   }
 }
