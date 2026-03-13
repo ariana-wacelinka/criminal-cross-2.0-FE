@@ -50,19 +50,12 @@ export class SuperadminUserEditPage {
   protected readonly allowedRoleSet = computed(() => new Set(this.availableRoles()));
 
   protected readonly user = toSignal(this.usersApi.getById(this.userId), {
-    initialValue: {
-      id: this.userId,
-      name: 'Cargando',
-      lastName: 'usuario',
-      email: '',
-      firebaseUid: '',
-      roles: [],
-      active: true,
-    },
+    initialValue: null,
   });
 
   protected readonly selectedRoles = signal<Role[]>([]);
   protected readonly errorMessage = signal<string | null>(null);
+  protected readonly isSaving = signal(false);
   protected readonly form = new FormGroup({
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     lastName: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -72,18 +65,21 @@ export class SuperadminUserEditPage {
     }),
   });
 
-  protected readonly fullName = computed(() =>
-    `${this.user().name} ${this.user().lastName}`.trim(),
-  );
+  protected readonly isLoading = computed(() => this.user() === null);
+  protected readonly fullName = computed(() => {
+    const user = this.user();
+    return user ? `${user.name} ${user.lastName}`.trim() : 'Cargando usuario';
+  });
 
   constructor() {
     let initialized = false;
     effect(() => {
       const currentUser = this.user();
-      const isLoadingPlaceholder =
-        currentUser.name === 'Cargando' && currentUser.lastName === 'usuario';
+      if (!currentUser) {
+        return;
+      }
 
-      if (!initialized && currentUser.id === this.userId && !isLoadingPlaceholder) {
+      if (!initialized && currentUser.id === this.userId) {
         this.form.patchValue(
           {
             name: currentUser.name,
@@ -110,6 +106,10 @@ export class SuperadminUserEditPage {
   }
 
   protected async save(): Promise<void> {
+    if (this.isLoading() || this.isSaving()) {
+      return;
+    }
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.errorMessage.set('Completa todos los campos requeridos.');
@@ -122,11 +122,20 @@ export class SuperadminUserEditPage {
     }
 
     this.errorMessage.set(null);
+    this.isSaving.set(true);
+
+    const user = this.user();
+    if (!user) {
+      this.errorMessage.set('No se pudo cargar el usuario.');
+      this.isSaving.set(false);
+      return;
+    }
 
     const userPayload: UpdateUserRequest = {
       name: this.form.controls.name.value,
       lastName: this.form.controls.lastName.value,
       email: this.form.controls.email.value,
+      active: user.active,
     };
 
     const sanitizedRoles = this.selectedRoles().filter((role) => this.allowedRoleSet().has(role));
@@ -142,14 +151,17 @@ export class SuperadminUserEditPage {
 
     try {
       await firstValueFrom(this.usersApi.update(this.userId, userPayload));
+
       if (this.canEditRoles()) {
-        await firstValueFrom(this.usersApi.updateRoles(this.userId, rolesPayload));
+        await firstValueFrom(this.usersApi.updateRolesById(this.userId, rolesPayload));
       }
       this.toast.success('Usuario actualizado.');
       await this.router.navigateByUrl('/users');
     } catch {
       this.errorMessage.set('No se pudieron guardar los cambios.');
       this.toast.error('No se pudo actualizar el usuario.');
+    } finally {
+      this.isSaving.set(false);
     }
   }
 
