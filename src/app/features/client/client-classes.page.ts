@@ -6,13 +6,14 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { firstValueFrom, forkJoin, map, of, switchMap } from 'rxjs';
+import { firstValueFrom, map, switchMap } from 'rxjs';
 import { ActivitiesApi } from '../../core/api/activities.api';
 import { BookingsApi } from '../../core/api/bookings.api';
 import { SessionsApi } from '../../core/api/sessions.api';
-import { UsersApi } from '../../core/api/users.api';
 import { AuthSessionService } from '../../core/auth';
+import { ClientContextService } from '../../core/client-context/client-context.service';
 import { BookingStatus, SessionInstance } from '../../core/domain/models';
 import { UiToastService } from '../../core/ui/toast.service';
 
@@ -42,23 +43,29 @@ export class ClientClassesPage {
   private readonly sessionsApi = inject(SessionsApi);
   private readonly activitiesApi = inject(ActivitiesApi);
   private readonly bookingsApi = inject(BookingsApi);
-  private readonly usersApi = inject(UsersApi);
+  private readonly clientContext = inject(ClientContextService);
   private readonly toast = inject(UiToastService);
 
-  private readonly userId = this.authSession.user()?.userId ?? 10;
-  private readonly headquartersId = 101;
+  private readonly currentUserId = this.authSession.user()?.userId ?? null;
+  private readonly currentUserEmail = this.authSession.user()?.email?.toLowerCase().trim() ?? null;
+  private readonly headquartersId = this.clientContext.current()?.headquartersId ?? 101;
 
   protected readonly selectedDate = signal('');
   protected readonly selectedSessionId = signal<number | null>(null);
-  private readonly bookingReloadTick = signal(0);
+  private readonly localBookingsBySession = signal<Record<number, number>>({});
+  private readonly sessionsReloadTick = signal(0);
 
   protected readonly sessionsPage = toSignal(
-    this.sessionsApi.getAll({
-      headquartersId: this.headquartersId,
-      page: 0,
-      limit: 100,
-      sort: 'startsAt:asc',
-    }),
+    toObservable(this.sessionsReloadTick).pipe(
+      switchMap(() =>
+        this.sessionsApi.getAll({
+          headquartersId: this.headquartersId,
+          page: 0,
+          limit: 100,
+          sort: 'startsAt:asc',
+        }),
+      ),
+    ),
     { initialValue: null },
   );
 
@@ -70,84 +77,20 @@ export class ClientClassesPage {
         size: 100,
       })
       .pipe(map((response) => response.content)),
-    { initialValue: [] },
+    { initialValue: null },
   );
-
-  protected readonly userBookings = toSignal(
-    toObservable(this.bookingReloadTick).pipe(
-      switchMap(() =>
-        this.bookingsApi
-          .getAll({ userId: this.userId, page: 0, limit: 200, sort: 'createdAt:desc' })
-          .pipe(map((response) => response.items)),
-      ),
-    ),
-    { initialValue: [] },
-  );
-
-  private readonly sessionOccupancyMap = toSignal(
-    toObservable(
-      computed(() => ({
-        sessions: this.sessionsPage()?.items ?? [],
-        reload: this.bookingReloadTick(),
-      })),
-    ).pipe(
-      switchMap(({ sessions }) => {
-        if (!sessions.length) {
-          return of<Record<number, number>>({});
-        }
-
-        return forkJoin(
-          sessions.map((session) =>
-            this.bookingsApi.getAll({ sessionId: session.id, page: 0, limit: 200 }).pipe(
-              map((response) => {
-                const occupied = response.items.filter(
-                  (booking) => booking.status !== BookingStatus.CANCELLED,
-                ).length;
-                return [session.id, occupied] as const;
-              }),
-            ),
-          ),
-        ).pipe(map((entries) => Object.fromEntries(entries)));
-      }),
-    ),
-    { initialValue: {} as Record<number, number> },
-  );
-
-  protected readonly selectedSessionBookings = toSignal(
-    toObservable(
-      computed(() => ({
-        sessionId: this.selectedSessionId(),
-        reload: this.bookingReloadTick(),
-      })),
-    ).pipe(
-      switchMap(({ sessionId }) => {
-        if (!sessionId) {
-          return of([]);
-        }
-        return this.bookingsApi
-          .getAll({ sessionId, page: 0, limit: 100 })
-          .pipe(map((response) => response.items));
-      }),
-    ),
-    { initialValue: [] },
-  );
-
-  private readonly usersCatalog = toSignal(this.usersApi.getAll(), { initialValue: [] });
 
   private readonly bookingsBySession = computed(() => {
-    const mapBySession = new Map<number, number>();
-    for (const booking of this.userBookings()) {
-      if (booking.status === BookingStatus.CANCELLED) {
-        continue;
-      }
-      if (!mapBySession.has(booking.sessionId)) {
-        mapBySession.set(booking.sessionId, booking.id);
-      }
-    }
-    return mapBySession;
+    const entries = Object.entries(this.localBookingsBySession()).map(
+      ([sessionId, bookingId]) => [Number(sessionId), bookingId] as const,
+    );
+    return new Map<number, number>(entries);
   });
 
   protected readonly sessions = computed(() => this.sessionsPage()?.items ?? []);
+  protected readonly isLoading = computed(
+    () => this.sessionsPage() === null || this.activitiesCatalog() === null,
+  );
 
   protected readonly calendarDays = computed(() => {
     const dateSet = new Set(this.sessions().map((session) => this.toDateKey(session.startsAt)));
@@ -165,8 +108,8 @@ export class ClientClassesPage {
       activityName: this.activityName(session.activityId, session.activityName),
       dateLabel: this.dateLabel(session.startsAt),
       scheduleLabel: this.scheduleLabel(session),
-      occupancyLabel: `${this.occupancy(session.id)} / ${session.maxParticipants}`,
-      booked: this.bookingsBySession().has(session.id),
+      occupancyLabel: `${session.participants?.length ?? 0} / ${session.maxParticipants}`,
+      booked: this.isSessionBooked(session),
     }));
   });
 
@@ -180,7 +123,7 @@ export class ClientClassesPage {
 
   protected readonly selectedSessionBooked = computed(() => {
     const session = this.selectedSession();
-    return session ? this.bookingsBySession().has(session.id) : false;
+    return session ? this.isSessionBooked(session) : false;
   });
 
   protected readonly selectedSessionOccupancy = computed(() => {
@@ -188,21 +131,21 @@ export class ClientClassesPage {
     if (!session) {
       return 0;
     }
-    return this.occupancy(session.id);
+    return session.participants?.length ?? 0;
   });
 
-  protected readonly selectedSessionParticipants = computed(() =>
-    this.selectedSessionBookings()
-      .filter((booking) => booking.status !== BookingStatus.CANCELLED)
-      .map((booking) => {
-        const user = this.usersCatalog().find((item) => item.id === booking.userId);
-        return {
-          id: booking.id,
-          name: user ? `${user.name} ${user.lastName}` : `Usuario #${booking.userId}`,
-          email: user?.email ?? `user${booking.userId}@athlium.app`,
-        } as SessionParticipantView;
-      }),
-  );
+  protected readonly selectedSessionParticipants = computed<SessionParticipantView[]>(() => {
+    const session = this.selectedSession();
+    if (!session?.participants?.length) {
+      return [];
+    }
+
+    return session.participants.map((participant) => ({
+      id: participant.id,
+      name: `${participant.name}${participant.lastName ? ` ${participant.lastName}` : ''}`.trim(),
+      email: participant.email?.trim() || 'Sin email',
+    }));
+  });
 
   constructor() {
     effect(() => {
@@ -233,33 +176,83 @@ export class ClientClassesPage {
     }
 
     try {
-      await firstValueFrom(this.bookingsApi.create(sessionId, this.userId));
-      this.bookingReloadTick.update((value) => value + 1);
+      const booking = await firstValueFrom(this.bookingsApi.create(sessionId));
+      this.localBookingsBySession.update((current) => ({ ...current, [sessionId]: booking.id }));
+      this.sessionsReloadTick.update((value) => value + 1);
       this.toast.success('Reserva confirmada.');
-    } catch {
-      this.toast.error('No se pudo reservar la sesión.');
+    } catch (error) {
+      this.toast.error(this.resolveBookingError(error, 'No se pudo reservar la sesión.'));
     }
   }
 
   protected async cancelReservation(sessionId: number): Promise<void> {
-    const activeBookingIds = this.userBookings()
-      .filter(
-        (booking) => booking.sessionId === sessionId && booking.status !== BookingStatus.CANCELLED,
-      )
-      .map((booking) => booking.id);
+    let bookingId: number | undefined = this.bookingsBySession().get(sessionId);
+    if (bookingId == null) {
+      bookingId = (await this.findOwnBookingId(sessionId)) ?? undefined;
+    }
 
-    if (!activeBookingIds.length) {
+    if (bookingId == null) {
+      this.toast.show('No se encontro una reserva activa para cancelar.', 'info');
       return;
     }
 
     try {
-      await Promise.all(
-        activeBookingIds.map((bookingId) => firstValueFrom(this.bookingsApi.cancel(bookingId))),
-      );
-      this.bookingReloadTick.update((value) => value + 1);
+      await firstValueFrom(this.bookingsApi.cancel(bookingId));
+      this.localBookingsBySession.update((current) => {
+        const next = { ...current };
+        delete next[sessionId];
+        return next;
+      });
+      this.sessionsReloadTick.update((value) => value + 1);
       this.toast.success('Reserva cancelada.');
+    } catch (error) {
+      this.toast.error(this.resolveBookingError(error, 'No se pudo cancelar la reserva.'));
+    }
+  }
+
+  private resolveBookingError(error: unknown, fallback: string): string {
+    if (error instanceof HttpErrorResponse) {
+      const apiMessage = error.error?.message;
+      if (typeof apiMessage === 'string' && apiMessage.trim()) {
+        return apiMessage;
+      }
+    }
+
+    if (error instanceof Error && error.message.trim()) {
+      return error.message;
+    }
+
+    return fallback;
+  }
+
+  private isSessionBooked(session: SessionInstance): boolean {
+    if (this.bookingsBySession().has(session.id)) {
+      return true;
+    }
+
+    const participants = session.participants ?? [];
+    if (!participants.length) {
+      return false;
+    }
+
+    return participants.some((participant) => {
+      const matchesId = this.currentUserId !== null && participant.id === this.currentUserId;
+      const matchesEmail =
+        !!this.currentUserEmail &&
+        participant.email?.toLowerCase().trim() === this.currentUserEmail;
+      return matchesId || matchesEmail;
+    });
+  }
+
+  private async findOwnBookingId(sessionId: number): Promise<number | null> {
+    try {
+      const page = await firstValueFrom(this.bookingsApi.getAll({ sessionId, page: 0, limit: 50 }));
+      const booking = page.items.find((item) =>
+        [BookingStatus.CONFIRMED, BookingStatus.WAITLISTED].includes(item.status),
+      );
+      return booking?.id ?? null;
     } catch {
-      this.toast.error('No se pudo cancelar la reserva.');
+      return null;
     }
   }
 
@@ -269,7 +262,7 @@ export class ClientClassesPage {
     }
 
     return (
-      this.activitiesCatalog().find((activity) => activity.id === activityId)?.name ??
+      this.activitiesCatalog()?.find((activity) => activity.id === activityId)?.name ??
       `Actividad #${activityId}`
     );
   }
@@ -287,10 +280,6 @@ export class ClientClassesPage {
     const startsAt = new Date(session.startsAt);
     const endsAt = new Date(session.endsAt);
     return `${this.hourLabel(startsAt)} - ${this.hourLabel(endsAt)}`;
-  }
-
-  protected occupancy(sessionId: number): number {
-    return this.sessionOccupancyMap()[sessionId] ?? 0;
   }
 
   private toDateKey(isoInstant: string): string {

@@ -28,7 +28,19 @@
     class="ath-reveal mt-5 rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
     style="animation-delay: 110ms"
   >
-    @if (visibleRows().length) {
+    @if (isLoading()) {
+      <div class="grid gap-3">
+        @for (item of [1, 2, 3]; track item) {
+          <div
+            class="animate-pulse rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 p-3"
+          >
+            <div class="h-4 w-1/3 rounded bg-athlium-primary/20"></div>
+            <div class="mt-2 h-3 w-2/3 rounded bg-athlium-primary/15"></div>
+            <div class="mt-2 h-3 w-1/4 rounded bg-athlium-primary/15"></div>
+          </div>
+        }
+      </div>
+    } @else if (visibleRows().length) {
       <div class="grid gap-3">
         @for (row of visibleRows(); track row.sessionId) {
           <button
