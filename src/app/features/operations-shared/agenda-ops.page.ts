@@ -9,13 +9,11 @@ import {
 } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
-import { forkJoin, map, of, switchMap } from 'rxjs';
+import { map, of, switchMap } from 'rxjs';
 import { ActivitiesApi } from '../../core/api/activities.api';
-import { BookingsApi } from '../../core/api/bookings.api';
 import { HeadquartersApi } from '../../core/api/headquarters.api';
 import { SessionsApi } from '../../core/api/sessions.api';
-import { UsersApi } from '../../core/api/users.api';
-import { BookingStatus, SessionInstance, SessionStatus } from '../../core/domain/models';
+import { SessionInstance, SessionStatus } from '../../core/domain/models';
 
 interface AgendaParticipant {
   id: number;
@@ -35,25 +33,28 @@ export class AgendaOpsPage {
   private readonly sessionsApi = inject(SessionsApi);
   private readonly headquartersApi = inject(HeadquartersApi);
   private readonly activitiesApi = inject(ActivitiesApi);
-  private readonly bookingsApi = inject(BookingsApi);
-  private readonly usersApi = inject(UsersApi);
 
   protected readonly scope = this.route.snapshot.data['scope'] as 'org' | 'hq';
-  private readonly organizationId = 1;
-  private readonly headquartersId = 101;
   private readonly pageSize = 20;
+
+  private readonly accessibleHeadquarters = toSignal(this.headquartersApi.getAll(), {
+    initialValue: [],
+  });
+  private readonly defaultHeadquartersId = computed(
+    () => this.accessibleHeadquarters()[0]?.id ?? 0,
+  );
+  private readonly organizationId = computed(
+    () => this.accessibleHeadquarters()[0]?.organizationId ?? 0,
+  );
 
   protected readonly title = this.scope === 'org' ? 'Agenda por sede' : 'Agenda';
   protected readonly currentPage = signal(0);
   protected readonly selectedSessionId = signal<number | null>(null);
-  protected readonly selectedHeadquartersId = signal(this.scope === 'hq' ? this.headquartersId : 0);
-
-  protected readonly headquartersPage = toSignal(
-    this.scope === 'org'
-      ? this.headquartersApi.getPage(0, 100, this.organizationId)
-      : this.headquartersApi.getPage(0, 1, this.organizationId),
-    { initialValue: null },
+  protected readonly selectedHeadquartersId = signal(
+    this.scope === 'hq' ? this.defaultHeadquartersId() : 0,
   );
+
+  protected readonly headquarters = computed(() => this.accessibleHeadquarters());
 
   protected readonly sessionsPage = toSignal(
     toObservable(
@@ -64,11 +65,11 @@ export class AgendaOpsPage {
     ).pipe(
       switchMap(({ page, headquartersId }) => {
         if (!headquartersId) {
-          return of({ items: [], page, limit: this.pageSize, total: 0 });
+          return of(null);
         }
 
         return this.sessionsApi.getAll({
-          organizationId: this.organizationId,
+          organizationId: this.organizationId() || undefined,
           headquartersId,
           page,
           limit: this.pageSize,
@@ -83,60 +84,24 @@ export class AgendaOpsPage {
     toObservable(this.selectedHeadquartersId).pipe(
       switchMap((headquartersId) => {
         if (!headquartersId) {
-          return of([]);
+          return of(null);
         }
         return this.activitiesApi
           .getAll({ hqId: headquartersId, page: 0, size: 100 })
           .pipe(map((response) => response.content));
       }),
     ),
-    { initialValue: [] },
-  );
-
-  private readonly usersCatalog = toSignal(this.usersApi.getAll(), { initialValue: [] });
-
-  private readonly sessionOccupancyMap = toSignal(
-    toObservable(computed(() => this.sessionsPage()?.items ?? [])).pipe(
-      switchMap((sessions) => {
-        if (!sessions.length) {
-          return of<Record<number, number>>({});
-        }
-
-        return forkJoin(
-          sessions.map((session) =>
-            this.bookingsApi.getAll({ sessionId: session.id, page: 0, limit: 200 }).pipe(
-              map((response) => {
-                const count = response.items.filter(
-                  (booking) => booking.status !== BookingStatus.CANCELLED,
-                ).length;
-                return [session.id, count] as const;
-              }),
-            ),
-          ),
-        ).pipe(map((entries) => Object.fromEntries(entries)));
-      }),
-    ),
-    { initialValue: {} as Record<number, number> },
-  );
-
-  private readonly sessionBookings = toSignal(
-    toObservable(this.selectedSessionId).pipe(
-      switchMap((sessionId) => {
-        if (!sessionId) {
-          return of([]);
-        }
-
-        return this.bookingsApi
-          .getAll({ sessionId, page: 0, limit: 100 })
-          .pipe(map((response) => response.items));
-      }),
-    ),
-    { initialValue: [] },
+    { initialValue: null },
   );
 
   protected readonly sessions = computed(() => this.sessionsPage()?.items ?? []);
   protected readonly hasItems = computed(() => this.sessions().length > 0);
-  protected readonly isLoading = computed(() => !this.sessionsPage());
+  protected readonly isLoading = computed(
+    () =>
+      !this.selectedHeadquartersId() ||
+      this.sessionsPage() === null ||
+      this.activitiesCatalog() === null,
+  );
   protected readonly canGoPrev = computed(() => this.currentPage() > 0);
   protected readonly canGoNext = computed(() => {
     const page = this.sessionsPage();
@@ -155,22 +120,22 @@ export class AgendaOpsPage {
   });
 
   protected readonly selectedParticipants = computed<AgendaParticipant[]>(() => {
-    const users = this.usersCatalog();
-    return this.sessionBookings()
-      .filter((booking) => booking.status !== BookingStatus.CANCELLED)
-      .map((booking) => {
-        const user = users.find((item) => item.id === booking.userId);
-        return {
-          id: booking.id,
-          name: user ? `${user.name} ${user.lastName}` : `Usuario #${booking.userId}`,
-          email: user?.email ?? `user${booking.userId}@athlium.app`,
-        };
-      });
+    const session = this.selectedSession();
+    return (session?.participants ?? []).map((participant) => ({
+      id: participant.id,
+      name: `${participant.name}${participant.lastName ? ` ${participant.lastName}` : ''}`.trim(),
+      email: participant.email?.trim() || 'Sin email',
+    }));
   });
 
   constructor() {
     effect(() => {
-      const headquarters = this.headquartersPage()?.items ?? [];
+      const headquarters = this.headquarters();
+      if (this.scope === 'hq' && headquarters.length && !this.selectedHeadquartersId()) {
+        this.selectedHeadquartersId.set(headquarters[0].id);
+        return;
+      }
+
       if (this.scope === 'org' && headquarters.length && !this.selectedHeadquartersId()) {
         this.selectedHeadquartersId.set(headquarters[0].id);
       }
@@ -220,13 +185,13 @@ export class AgendaOpsPage {
     }
 
     return (
-      this.activitiesCatalog().find((activity) => activity.id === activityId)?.name ??
+      this.activitiesCatalog()?.find((activity) => activity.id === activityId)?.name ??
       `Actividad #${activityId}`
     );
   }
 
   protected occupancy(sessionId: number): number {
-    return this.sessionOccupancyMap()[sessionId] ?? 0;
+    return this.sessions().find((session) => session.id === sessionId)?.participants?.length ?? 0;
   }
 
   protected dateLabel(isoInstant: string): string {
