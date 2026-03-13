@@ -11,8 +11,11 @@
     <article
       class="rounded-xl border border-athlium-primary/12 bg-athlium-surface/90 p-4 shadow-soft"
     >
-      <p class="text-xs uppercase tracking-[0.14em] text-athlium-muted">Reservas</p>
-      <p class="mt-2 font-title text-3xl font-semibold">{{ bookingsCount() }}</p>
+      <p class="text-xs uppercase tracking-[0.14em] text-athlium-muted">Reservas activas</p>
+      <p class="mt-2 font-title text-3xl font-semibold">
+        {{ bookingsCount() === 0 ? '-' : bookingsCount() }}
+      </p>
+      <p class="mt-1 text-xs text-athlium-muted">Dato temporalmente no disponible.</p>
     </article>
     <article
       class="rounded-xl border border-athlium-primary/12 bg-athlium-surface/90 p-4 shadow-soft"
