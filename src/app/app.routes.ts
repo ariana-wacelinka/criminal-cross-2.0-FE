@@ -7,8 +7,8 @@ const SUPERADMIN_ONLY = [Role.SUPERADMIN];
 const ORG_OWNER_OR_ADMIN = [Role.ORG_OWNER, Role.ORG_ADMIN];
 const HQ_ADMIN_ONLY = [Role.ORG_ADMIN];
 const PROFESSOR_ONLY = [Role.PROFESSOR];
-const HQ_STAFF = [Role.ORG_ADMIN, Role.PROFESSOR];
-const USER_MANAGERS = [Role.ORG_OWNER, Role.ORG_ADMIN, Role.PROFESSOR];
+const HQ_STAFF = [Role.ORG_OWNER, Role.ORG_ADMIN, Role.PROFESSOR];
+const USER_MANAGERS = [Role.SUPERADMIN, Role.ORG_OWNER, Role.ORG_ADMIN, Role.PROFESSOR];
 
 export const routes: Routes = [
   {
@@ -97,7 +97,7 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/superadmin').then((m) => m.SuperadminHeadquartersDetailPage),
         canActivate: [roleGuard],
-        data: { roles: SUPERADMIN_ONLY },
+        data: { roles: ORG_OWNER_OR_ADMIN },
       },
       {
         path: 'headquarters/:headquartersId/activities',
@@ -139,7 +139,7 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/superadmin').then((m) => m.SuperadminHeadquartersEditPage),
         canActivate: [roleGuard],
-        data: { roles: SUPERADMIN_ONLY },
+        data: { roles: ORG_OWNER_OR_ADMIN },
       },
       {
         path: 'users',

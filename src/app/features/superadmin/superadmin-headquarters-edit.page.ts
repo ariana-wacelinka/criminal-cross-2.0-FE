@@ -1,10 +1,12 @@
-import { ChangeDetectionStrategy, Component, effect, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { AuthSessionService } from '../../core/auth';
 import { HeadquartersApi } from '../../core/api/headquarters.api';
 import { OrganizationsApi } from '../../core/api/organizations.api';
+import { Role } from '../../core/domain/models';
 import { UiToastService } from '../../core/ui/toast.service';
 
 @Component({
@@ -17,11 +19,16 @@ import { UiToastService } from '../../core/ui/toast.service';
 export class SuperadminHeadquartersEditPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly authSession = inject(AuthSessionService);
   private readonly headquartersApi = inject(HeadquartersApi);
   private readonly organizationsApi = inject(OrganizationsApi);
   private readonly toast = inject(UiToastService);
 
   private readonly headquartersId = Number(this.route.snapshot.paramMap.get('headquartersId'));
+  private readonly headquartersListPath = computed(() => {
+    const role = this.authSession.user()?.roles[0];
+    return role === Role.SUPERADMIN ? '/headquarters' : '/org-owner/headquarters';
+  });
 
   protected readonly organizations = toSignal(this.organizationsApi.getAll(), { initialValue: [] });
   protected readonly headquarters = toSignal(this.headquartersApi.getById(this.headquartersId), {
@@ -62,13 +69,13 @@ export class SuperadminHeadquartersEditPage {
         }),
       );
       this.toast.success('Sede actualizada.');
-      await this.router.navigateByUrl('/headquarters');
+      await this.router.navigateByUrl(this.headquartersListPath());
     } catch {
       this.toast.error('No se pudo actualizar la sede.');
     }
   }
 
   protected async cancel(): Promise<void> {
-    await this.router.navigateByUrl('/headquarters');
+    await this.router.navigateByUrl(this.headquartersListPath());
   }
 }

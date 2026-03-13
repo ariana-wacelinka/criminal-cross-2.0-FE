@@ -33,6 +33,10 @@ export const roleGuard: CanActivateFn = (route): boolean | UrlTree => {
   }
 
   const userRoles = user.roles ?? [];
+  if (!userRoles.length) {
+    return router.createUrlTree(['/me']);
+  }
+
   if (allowedRoles.some((role) => userRoles.includes(role))) {
     return true;
   }
