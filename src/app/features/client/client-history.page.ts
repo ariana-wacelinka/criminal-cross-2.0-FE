@@ -1,10 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { forkJoin, map, of, switchMap } from 'rxjs';
+import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { ActivitiesApi } from '../../core/api/activities.api';
 import { BookingsApi } from '../../core/api/bookings.api';
 import { SessionsApi } from '../../core/api/sessions.api';
-import { AuthSessionService } from '../../core/auth';
+import { ClientContextService } from '../../core/client-context/client-context.service';
 import { BookingStatus } from '../../core/domain/models';
 
 interface HistoryItem {
@@ -21,23 +21,28 @@ interface HistoryItem {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ClientHistoryPage {
-  private readonly authSession = inject(AuthSessionService);
   private readonly bookingsApi = inject(BookingsApi);
   private readonly sessionsApi = inject(SessionsApi);
   private readonly activitiesApi = inject(ActivitiesApi);
+  private readonly clientContext = inject(ClientContextService);
 
-  private readonly userId = this.authSession.user()?.userId ?? 10;
-  private readonly headquartersId = 101;
+  private readonly headquartersId = this.clientContext.current()?.headquartersId ?? 101;
+  protected readonly historyUnavailable = signal(false);
 
   private readonly bookings = toSignal(
     this.bookingsApi
       .getAll({
-        userId: this.userId,
         status: BookingStatus.ATTENDED,
         page: 0,
         limit: 100,
         sort: 'createdAt:desc',
       })
+      .pipe(
+        catchError(() => {
+          this.historyUnavailable.set(true);
+          return of({ items: [] });
+        }),
+      )
       .pipe(map((response) => response.items)),
     { initialValue: [] },
   );

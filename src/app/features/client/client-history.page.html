@@ -22,7 +22,13 @@
         }
       </div>
     } @else {
-      <p class="text-sm text-athlium-muted">Todavía no registrás asistencias.</p>
+      @if (historyUnavailable()) {
+        <p class="text-sm text-athlium-muted">
+          El historial detallado no esta disponible para el perfil cliente en esta version.
+        </p>
+      } @else {
+        <p class="text-sm text-athlium-muted">Todavía no registrás asistencias.</p>
+      }
     }
   </article>
 </section>
