@@ -21,29 +21,26 @@ export class SuperadminUserDetailPage {
   private readonly userId = Number(this.route.snapshot.paramMap.get('userId'));
 
   protected readonly user = toSignal(this.usersApi.getById(this.userId), {
-    initialValue: {
-      id: this.userId,
-      name: 'Cargando',
-      lastName: 'usuario',
-      email: '',
-      firebaseUid: '',
-      roles: [],
-      active: true,
-    },
+    initialValue: null,
   });
 
-  protected readonly fullName = computed(() =>
-    `${this.user().name} ${this.user().lastName}`.trim(),
-  );
+  protected readonly fullName = computed(() => {
+    const user = this.user();
+    return user ? `${user.name} ${user.lastName}`.trim() : 'Cargando usuario';
+  });
 
   protected readonly userPackages = toSignal(this.clientPackagesApi.getAll(this.userId), {
-    initialValue: [],
+    initialValue: null,
   });
+  protected readonly isLoading = computed(
+    () => this.user() === null || this.userPackages() === null,
+  );
+  protected readonly packageItems = computed(() => this.userPackages() ?? []);
   protected readonly activePackages = computed(() =>
-    this.userPackages().filter((item) => item.active),
+    this.packageItems().filter((item) => item.active),
   );
   protected readonly previousPackages = computed(() =>
-    this.userPackages().filter((item) => !item.active),
+    this.packageItems().filter((item) => !item.active),
   );
 
   protected async goBack(): Promise<void> {
