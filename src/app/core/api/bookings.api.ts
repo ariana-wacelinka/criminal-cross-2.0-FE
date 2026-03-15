@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { map, Observable, of } from 'rxjs';
+import { map, Observable, of, shareReplay, tap } from 'rxjs';
 import { ApiResponse, Booking, BookingPageResponse, BookingStatus } from '../domain/models';
 import { API_BASE_URL } from '../http/api-base-url.token';
 import { API_MOCK_MODE } from '../http';
@@ -48,6 +48,22 @@ export class BookingsApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
   private readonly apiMockMode = inject(API_MOCK_MODE);
+  private readonly queryCache = new Map<string, Observable<BookingPageResponse>>();
+
+  private invalidateCache(): void {
+    this.queryCache.clear();
+  }
+
+  private queryCacheKey(query: BookingsQuery): string {
+    return JSON.stringify({
+      sessionId: query.sessionId ?? null,
+      userId: query.userId ?? null,
+      status: query.status ?? null,
+      page: query.page ?? null,
+      limit: query.limit ?? null,
+      sort: query.sort ?? null,
+    });
+  }
 
   create(sessionId: number, userId?: number): Observable<Booking> {
     if (this.apiMockMode) {
@@ -67,7 +83,10 @@ export class BookingsApi {
       .post<
         ApiResponse<Booking> | Booking
       >(`${this.baseUrl}/sessions/${sessionId}/bookings`, userId ? { userId } : null)
-      .pipe(map(unwrapApiResponse));
+      .pipe(
+        map(unwrapApiResponse),
+        tap(() => this.invalidateCache()),
+      );
   }
 
   cancel(bookingId: number): Observable<Booking> {
@@ -91,7 +110,10 @@ export class BookingsApi {
 
     return this.http
       .post<ApiResponse<Booking> | Booking>(`${this.baseUrl}/bookings/${bookingId}/cancel`, null)
-      .pipe(map(unwrapApiResponse));
+      .pipe(
+        map(unwrapApiResponse),
+        tap(() => this.invalidateCache()),
+      );
   }
 
   getAll(query: BookingsQuery): Observable<BookingPageResponse> {
@@ -120,10 +142,18 @@ export class BookingsApi {
       });
     }
 
-    return this.http
+    const cacheKey = this.queryCacheKey(query);
+    const cached = this.queryCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.http
       .get<ApiResponse<BookingPageResponse> | BookingPageResponse>(`${this.baseUrl}/bookings`, {
         params: toHttpParams({ ...query, page: toBackendPage(query.page) }),
       })
-      .pipe(map(unwrapApiResponse));
+      .pipe(map(unwrapApiResponse), shareReplay(1));
+    this.queryCache.set(cacheKey, request$);
+    return request$;
   }
 }

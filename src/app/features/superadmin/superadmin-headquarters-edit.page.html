@@ -2,9 +2,11 @@
   <header
     class="rounded-panel border border-athlium-primary/10 bg-athlium-surface/90 p-5 shadow-soft"
   >
-    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">Superadmin</p>
+    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-athlium-muted">
+      {{ roleBadgeLabel() }}
+    </p>
     <h1 class="mt-2 font-title text-3xl font-semibold">Editar sede</h1>
-    <p class="mt-1 text-sm text-athlium-muted">Actualiza nombre y organización de la sede.</p>
+    <p class="mt-1 text-sm text-athlium-muted">{{ pageDescription() }}</p>
   </header>
 
   <form
@@ -15,22 +17,31 @@
     <div class="grid gap-4 sm:grid-cols-2">
       <label class="grid gap-2 text-sm">
         <span class="text-athlium-muted">Organización</span>
-        <select
-          class="ath-select appearance-none rounded-xl border bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
-          [class.border-red-400/45]="
-            form.controls.organizationId.invalid && form.controls.organizationId.touched
-          "
-          [class.border-athlium-primary/14]="
-            !(form.controls.organizationId.invalid && form.controls.organizationId.touched)
-          "
-          formControlName="organizationId"
-        >
-          @for (organization of organizations(); track organization.id) {
-            <option [value]="organization.id">{{ organization.name }}</option>
+        @if (isSuperadmin()) {
+          <select
+            class="ath-select appearance-none rounded-xl border bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+            [class.border-red-400/45]="
+              form.controls.organizationId.invalid && form.controls.organizationId.touched
+            "
+            [class.border-athlium-primary/14]="
+              !(form.controls.organizationId.invalid && form.controls.organizationId.touched)
+            "
+            formControlName="organizationId"
+          >
+            @for (organization of organizations(); track organization.id) {
+              <option [value]="organization.id">{{ organization.name }}</option>
+            }
+          </select>
+          @if (form.controls.organizationId.invalid && form.controls.organizationId.touched) {
+            <p class="text-xs text-red-300">Selecciona una organización.</p>
           }
-        </select>
-        @if (form.controls.organizationId.invalid && form.controls.organizationId.touched) {
-          <p class="text-xs text-red-300">Selecciona una organización.</p>
+        } @else {
+          <input
+            class="appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/45 px-3 py-2 text-sm text-athlium-muted outline-none"
+            [value]="headquartersOrganizationName()"
+            readonly
+            type="text"
+          />
         }
       </label>
 

@@ -23,6 +23,7 @@ export interface PaymentListItem {
   userLastName: string;
   organizationId: number;
   headquartersId: number;
+  activities?: Array<{ id: number; name: string }>;
 }
 
 const MOCK_PAYMENT_LIST: PaymentListItem[] = Array.from({ length: 26 }, (_, index) => {
@@ -111,16 +112,42 @@ function slicePaymentsPage(
   };
 }
 
-function toBackendPage(page: number): number {
-  return Math.max(1, page + 1);
+function normalizePaymentsPage(
+  response: PageResult<PaymentListItem> | { content?: PaymentListItem[]; totalElements?: number },
+  page: number,
+  size: number,
+): PageResult<PaymentListItem> {
+  const safePage = Math.max(0, page);
+  const safeSize = Math.max(1, size);
+
+  if (Array.isArray((response as { items?: PaymentListItem[] }).items)) {
+    const typed = response as PageResult<PaymentListItem>;
+    const rawPage = Number.isFinite(typed.page) ? Number(typed.page) : safePage;
+    return {
+      items: typed.items ?? [],
+      total: Number.isFinite(typed.total) ? Number(typed.total) : 0,
+      page: rawPage > 0 ? rawPage - 1 : rawPage,
+      size: Number.isFinite(typed.size) ? Number(typed.size) : safeSize,
+    };
+  }
+
+  const backend = response as {
+    content?: PaymentListItem[];
+    page?: number;
+    size?: number;
+    totalElements?: number;
+  };
+  const rawPage = Number.isFinite(backend.page) ? Number(backend.page) : safePage + 1;
+  return {
+    items: backend.content ?? [],
+    total: Number.isFinite(backend.totalElements) ? Number(backend.totalElements) : 0,
+    page: rawPage > 0 ? rawPage - 1 : 0,
+    size: Number.isFinite(backend.size) ? Number(backend.size) : safeSize,
+  };
 }
 
-function fromBackendPage<T>(pageResult: PageResult<T>): PageResult<T> {
-  const backendPage = Number.isFinite(pageResult.page) ? pageResult.page : 1;
-  return {
-    ...pageResult,
-    page: Math.max(0, backendPage - 1),
-  };
+function toBackendPage(page: number): number {
+  return Math.max(1, page + 1);
 }
 
 @Injectable({ providedIn: 'root' })
@@ -162,13 +189,20 @@ export class PaymentsApi {
     }
 
     const request$ = this.http
-      .get<ApiResponse<PageResult<PaymentListItem>> | PageResult<PaymentListItem>>(
-        `${this.baseUrl}/payments`,
-        {
-          params: toHttpParams({ headquartersId, page: toBackendPage(page), size }),
-        },
-      )
-      .pipe(map(unwrapApiResponse), map(fromBackendPage), shareReplay(1));
+      .get<
+        | ApiResponse<
+            PageResult<PaymentListItem> | { content: PaymentListItem[]; totalElements: number }
+          >
+        | PageResult<PaymentListItem>
+        | { content: PaymentListItem[]; totalElements: number }
+      >(`${this.baseUrl}/payments`, {
+        params: toHttpParams({ headquartersId, page: toBackendPage(page), size }),
+      })
+      .pipe(
+        map(unwrapApiResponse),
+        map((payload) => normalizePaymentsPage(payload, page, size)),
+        shareReplay(1),
+      );
     this.byHqCache.set(key, request$);
     return request$;
   }
@@ -195,13 +229,20 @@ export class PaymentsApi {
     }
 
     const request$ = this.http
-      .get<ApiResponse<PageResult<PaymentListItem>> | PageResult<PaymentListItem>>(
-        `${this.baseUrl}/payments`,
-        {
-          params: toHttpParams({ organizationId, page: toBackendPage(page), size }),
-        },
-      )
-      .pipe(map(unwrapApiResponse), map(fromBackendPage), shareReplay(1));
+      .get<
+        | ApiResponse<
+            PageResult<PaymentListItem> | { content: PaymentListItem[]; totalElements: number }
+          >
+        | PageResult<PaymentListItem>
+        | { content: PaymentListItem[]; totalElements: number }
+      >(`${this.baseUrl}/payments`, {
+        params: toHttpParams({ organizationId, page: toBackendPage(page), size }),
+      })
+      .pipe(
+        map(unwrapApiResponse),
+        map((payload) => normalizePaymentsPage(payload, page, size)),
+        shareReplay(1),
+      );
     this.byOrgCache.set(key, request$);
     return request$;
   }

@@ -18,6 +18,7 @@
       <input
         type="date"
         [value]="selectedDate()"
+        [min]="todayDate()"
         (input)="setDate($any($event.target).value)"
         class="appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
       />
