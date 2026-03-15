@@ -4,6 +4,7 @@ import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { ActivitiesApi } from '../../core/api/activities.api';
 import { BookingsApi } from '../../core/api/bookings.api';
 import { SessionsApi } from '../../core/api/sessions.api';
+import { AuthSessionService } from '../../core/auth';
 import { ClientContextService } from '../../core/client-context/client-context.service';
 import { BookingStatus } from '../../core/domain/models';
 
@@ -21,18 +22,20 @@ interface HistoryItem {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ClientHistoryPage {
+  private readonly authSession = inject(AuthSessionService);
   private readonly bookingsApi = inject(BookingsApi);
   private readonly sessionsApi = inject(SessionsApi);
   private readonly activitiesApi = inject(ActivitiesApi);
   private readonly clientContext = inject(ClientContextService);
 
+  private readonly userId = this.authSession.user()?.userId ?? null;
   private readonly headquartersId = this.clientContext.current()?.headquartersId ?? 101;
   protected readonly historyUnavailable = signal(false);
 
   private readonly bookings = toSignal(
     this.bookingsApi
       .getAll({
-        status: BookingStatus.ATTENDED,
+        userId: this.userId ?? undefined,
         page: 0,
         limit: 100,
         sort: 'createdAt:desc',
@@ -44,20 +47,21 @@ export class ClientHistoryPage {
         }),
       )
       .pipe(map((response) => response.items)),
-    { initialValue: [] },
+    { initialValue: null },
   );
 
   private readonly activitiesCatalog = toSignal(
     this.activitiesApi
       .getAll({ hqId: this.headquartersId, page: 0, size: 200 })
       .pipe(map((response) => response.content)),
-    { initialValue: [] },
+    { initialValue: null },
   );
 
   private readonly sessionsById = toSignal(
     toObservable(this.bookings).pipe(
       switchMap((bookings) => {
-        const uniqueSessionIds = [...new Set(bookings.map((booking) => booking.sessionId))];
+        const source = bookings ?? [];
+        const uniqueSessionIds = [...new Set(source.map((booking) => booking.sessionId))];
         if (!uniqueSessionIds.length) {
           return of(
             new Map<
@@ -85,40 +89,44 @@ export class ClientHistoryPage {
         );
       }),
     ),
-    {
-      initialValue: new Map<
-        number,
-        { startsAt: string; endsAt: string; activityId: number; activityName?: string }
-      >(),
-    },
+    { initialValue: null },
+  );
+
+  protected readonly isLoading = computed(
+    () =>
+      this.bookings() === null || this.activitiesCatalog() === null || this.sessionsById() === null,
   );
 
   protected readonly history = computed<HistoryItem[]>(() => {
-    const activityMap = new Map(
-      this.activitiesCatalog().map((activity) => [activity.id, activity.name]),
-    );
+    const bookings = this.bookings() ?? [];
+    const activities = this.activitiesCatalog() ?? [];
+    const sessionsById = this.sessionsById() ?? new Map();
 
-    return this.bookings().map((booking) => {
-      const session = this.sessionsById().get(booking.sessionId);
-      const startsAt = session?.startsAt ?? booking.createdAt;
-      const endsAt = session?.endsAt ?? booking.updatedAt;
-      const activityName =
-        session?.activityName ??
-        (session ? activityMap.get(session.activityId) : null) ??
-        `Actividad #${session?.activityId ?? '-'}`;
+    const activityMap = new Map(activities.map((activity) => [activity.id, activity.name]));
 
-      return {
-        bookingId: booking.id,
-        activityName,
-        dateLabel: new Date(startsAt).toLocaleDateString('es-AR', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-        }),
-        scheduleLabel: `${this.hourLabel(new Date(startsAt))} - ${this.hourLabel(new Date(endsAt))}`,
-      };
-    });
+    return bookings
+      .filter((booking) => booking.status !== BookingStatus.CANCELLED)
+      .map((booking) => {
+        const session = sessionsById.get(booking.sessionId);
+        const startsAt = session?.startsAt ?? booking.createdAt;
+        const endsAt = session?.endsAt ?? booking.updatedAt;
+        const activityName =
+          session?.activityName ??
+          (session ? activityMap.get(session.activityId) : null) ??
+          `Actividad #${session?.activityId ?? '-'}`;
+
+        return {
+          bookingId: booking.id,
+          activityName,
+          dateLabel: new Date(startsAt).toLocaleDateString('es-AR', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          }),
+          scheduleLabel: `${this.hourLabel(new Date(startsAt))} - ${this.hourLabel(new Date(endsAt))}`,
+        };
+      });
   });
 
   private hourLabel(date: Date): string {
