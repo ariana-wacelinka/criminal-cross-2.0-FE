@@ -64,7 +64,7 @@
                       <button
                         type="button"
                         class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
-                        (click)="selectUser(user.id)"
+                        (mousedown)="selectUser(user.id); $event.preventDefault()"
                       >
                         {{ user.name }} {{ user.lastName }} ({{ user.email }})
                       </button>
@@ -105,7 +105,7 @@
                       <button
                         type="button"
                         class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
-                        (click)="selectActivity(activity.id)"
+                        (mousedown)="selectActivity(activity.id); $event.preventDefault()"
                       >
                         {{ activity.name }}
                       </button>
@@ -201,7 +201,7 @@
         @for (item of paymentHistory(); track item.paymentId) {
           <article class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 p-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <p class="font-semibold">Pago #{{ item.paymentId }} - {{ item.userName }}</p>
+              <p class="font-semibold">{{ paymentDateLabel(item.paidAt) }} - {{ item.userName }}</p>
               <span
                 class="rounded-full border border-athlium-primary/20 bg-athlium-primary/10 px-2 py-1 text-xs"
               >
@@ -214,7 +214,6 @@
                 | {{ item.activityName }} | {{ item.tokens }} tokens
               }
             </p>
-            <p class="mt-1 text-xs text-athlium-muted">Fecha de pago: {{ item.paidAt }}</p>
           </article>
         }
       </div>
