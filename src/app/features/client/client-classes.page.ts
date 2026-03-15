@@ -11,6 +11,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { firstValueFrom, map, switchMap } from 'rxjs';
 import { ActivitiesApi } from '../../core/api/activities.api';
 import { BookingsApi } from '../../core/api/bookings.api';
+import { ClientPackagesApi } from '../../core/api/client-packages.api';
 import { SessionsApi } from '../../core/api/sessions.api';
 import { AuthSessionService } from '../../core/auth';
 import { ClientContextService } from '../../core/client-context/client-context.service';
@@ -43,6 +44,7 @@ export class ClientClassesPage {
   private readonly sessionsApi = inject(SessionsApi);
   private readonly activitiesApi = inject(ActivitiesApi);
   private readonly bookingsApi = inject(BookingsApi);
+  private readonly clientPackagesApi = inject(ClientPackagesApi);
   private readonly clientContext = inject(ClientContextService);
   private readonly toast = inject(UiToastService);
 
@@ -178,6 +180,9 @@ export class ClientClassesPage {
     try {
       const booking = await firstValueFrom(this.bookingsApi.create(sessionId));
       this.localBookingsBySession.update((current) => ({ ...current, [sessionId]: booking.id }));
+      if (this.currentUserId) {
+        this.clientPackagesApi.refreshUserPackages(this.currentUserId);
+      }
       this.sessionsReloadTick.update((value) => value + 1);
       this.toast.success('Reserva confirmada.');
     } catch (error) {
@@ -203,6 +208,9 @@ export class ClientClassesPage {
         delete next[sessionId];
         return next;
       });
+      if (this.currentUserId) {
+        this.clientPackagesApi.refreshUserPackages(this.currentUserId);
+      }
       this.sessionsReloadTick.update((value) => value + 1);
       this.toast.success('Reserva cancelada.');
     } catch (error) {
