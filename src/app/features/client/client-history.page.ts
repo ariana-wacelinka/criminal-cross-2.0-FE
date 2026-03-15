@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
+import { catchError, forkJoin, map, of, startWith, switchMap } from 'rxjs';
 import { ActivitiesApi } from '../../core/api/activities.api';
 import { BookingsApi } from '../../core/api/bookings.api';
 import { SessionsApi } from '../../core/api/sessions.api';
@@ -60,6 +60,15 @@ export class ClientHistoryPage {
   private readonly sessionsById = toSignal(
     toObservable(this.bookings).pipe(
       switchMap((bookings) => {
+        if (bookings === null) {
+          return of(
+            null as Map<
+              number,
+              { startsAt: string; endsAt: string; activityId: number; activityName?: string }
+            > | null,
+          );
+        }
+
         const source = bookings ?? [];
         const uniqueSessionIds = [...new Set(source.map((booking) => booking.sessionId))];
         if (!uniqueSessionIds.length) {
@@ -86,6 +95,12 @@ export class ClientHistoryPage {
                 ]),
               ),
           ),
+          startWith(
+            null as Map<
+              number,
+              { startsAt: string; endsAt: string; activityId: number; activityName?: string }
+            > | null,
+          ),
         );
       }),
     ),
@@ -108,6 +123,10 @@ export class ClientHistoryPage {
       .filter((booking) => booking.status !== BookingStatus.CANCELLED)
       .map((booking) => {
         const session = sessionsById.get(booking.sessionId);
+        if (!session) {
+          return null;
+        }
+
         const startsAt = session?.startsAt ?? booking.createdAt;
         const endsAt = session?.endsAt ?? booking.updatedAt;
         const activityName =
@@ -126,7 +145,8 @@ export class ClientHistoryPage {
           }),
           scheduleLabel: `${this.hourLabel(new Date(startsAt))} - ${this.hourLabel(new Date(endsAt))}`,
         };
-      });
+      })
+      .filter((item): item is HistoryItem => item !== null);
   });
 
   private hourLabel(date: Date): string {
