@@ -25,6 +25,17 @@ export class SuperadminHeadquartersEditPage {
   private readonly toast = inject(UiToastService);
 
   private readonly headquartersId = Number(this.route.snapshot.paramMap.get('headquartersId'));
+  protected readonly isSuperadmin = computed(
+    () => this.authSession.user()?.roles[0] === Role.SUPERADMIN,
+  );
+  protected readonly roleBadgeLabel = computed(() =>
+    this.isSuperadmin() ? 'Superadmin' : 'Dueño de organización',
+  );
+  protected readonly pageDescription = computed(() =>
+    this.isSuperadmin()
+      ? 'Actualiza nombre y organización de la sede.'
+      : 'Actualiza el nombre de la sede de tu organización.',
+  );
   private readonly headquartersListPath = computed(() => {
     const role = this.authSession.user()?.roles[0];
     return role === Role.SUPERADMIN ? '/headquarters' : '/org-owner/headquarters';
@@ -34,6 +45,17 @@ export class SuperadminHeadquartersEditPage {
   protected readonly headquarters = toSignal(this.headquartersApi.getById(this.headquartersId), {
     initialValue: { id: this.headquartersId, organizationId: 0, name: '' },
   });
+  protected readonly headquartersOrganizationName = computed(() => {
+    const organizationId = this.headquarters().organizationId;
+    if (!organizationId) {
+      return 'Organización';
+    }
+
+    return (
+      this.organizations().find((organization) => organization.id === organizationId)?.name ??
+      `Organización #${organizationId}`
+    );
+  });
 
   protected readonly form = new FormGroup({
     organizationId: new FormControl(0, { nonNullable: true, validators: [Validators.required] }),
@@ -41,6 +63,10 @@ export class SuperadminHeadquartersEditPage {
   });
 
   constructor() {
+    if (!this.isSuperadmin()) {
+      this.form.controls.organizationId.disable({ emitEvent: false });
+    }
+
     effect(() => {
       const current = this.headquarters();
       if (current) {
@@ -62,9 +88,13 @@ export class SuperadminHeadquartersEditPage {
     }
 
     try {
+      const organizationId = this.isSuperadmin()
+        ? this.form.controls.organizationId.value
+        : this.headquarters().organizationId;
+
       await firstValueFrom(
         this.headquartersApi.update(this.headquartersId, {
-          organizationId: this.form.controls.organizationId.value,
+          organizationId,
           name: this.form.controls.name.value,
         }),
       );
