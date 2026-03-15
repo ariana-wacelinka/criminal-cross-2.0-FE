@@ -93,7 +93,7 @@
                       <button
                         type="button"
                         class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
-                        (click)="selectActivity(activity.id)"
+                        (mousedown)="selectActivity(activity.id); $event.preventDefault()"
                       >
                         {{ activity.name }}
                       </button>

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { firstValueFrom, of, switchMap } from 'rxjs';
+import { UserScopeService } from '../../core/auth';
 import { HeadquartersApi } from '../../core/api/headquarters.api';
 import { Headquarters } from '../../core/domain/models';
 import { UiToastService } from '../../core/ui/toast.service';
@@ -15,14 +16,10 @@ import { UiToastService } from '../../core/ui/toast.service';
 export class OrgOwnerHeadquartersPage {
   private readonly router = inject(Router);
   private readonly headquartersApi = inject(HeadquartersApi);
+  private readonly userScope = inject(UserScopeService);
   private readonly toast = inject(UiToastService);
 
-  private readonly ownerHeadquarters = toSignal(this.headquartersApi.getAll(), {
-    initialValue: [],
-  });
-  private readonly organizationId = computed(
-    () => this.ownerHeadquarters()[0]?.organizationId ?? null,
-  );
+  private readonly organizationId = computed(() => this.userScope.organizationId());
   protected readonly currentPage = signal(0);
   protected readonly pageSize = 10;
   private readonly refreshTick = signal(0);

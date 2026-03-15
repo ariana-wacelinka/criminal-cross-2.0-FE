@@ -11,8 +11,8 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map, of, switchMap } from 'rxjs';
 import { ActivitiesApi } from '../../core/api/activities.api';
-import { HeadquartersApi } from '../../core/api/headquarters.api';
 import { SessionsApi } from '../../core/api/sessions.api';
+import { UserScopeService } from '../../core/auth';
 import { SessionInstance, SessionStatus } from '../../core/domain/models';
 
 interface AgendaParticipant {
@@ -31,21 +31,17 @@ interface AgendaParticipant {
 export class AgendaOpsPage {
   private readonly route = inject(ActivatedRoute);
   private readonly sessionsApi = inject(SessionsApi);
-  private readonly headquartersApi = inject(HeadquartersApi);
   private readonly activitiesApi = inject(ActivitiesApi);
+  private readonly userScope = inject(UserScopeService);
 
   protected readonly scope = this.route.snapshot.data['scope'] as 'org' | 'hq';
   private readonly pageSize = 20;
 
-  private readonly accessibleHeadquarters = toSignal(this.headquartersApi.getAll(), {
-    initialValue: [],
-  });
+  private readonly accessibleHeadquarters = computed(() => this.userScope.headquarters());
   private readonly defaultHeadquartersId = computed(
     () => this.accessibleHeadquarters()[0]?.id ?? 0,
   );
-  private readonly organizationId = computed(
-    () => this.accessibleHeadquarters()[0]?.organizationId ?? 0,
-  );
+  private readonly organizationId = computed(() => this.userScope.organizationId() ?? 0);
 
   protected readonly title = this.scope === 'org' ? 'Agenda por sede' : 'Agenda';
   protected readonly currentPage = signal(0);

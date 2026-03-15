@@ -140,6 +140,10 @@ export class ClientPackagesApi {
     this.activeByUserCache.delete(userId);
   }
 
+  refreshUserPackages(userId: number): void {
+    this.invalidateUserCache(userId);
+  }
+
   create(userId: number, body: UpsertClientPackageRequest): Observable<ClientPackage> {
     if (this.apiMockMode) {
       for (const item of MOCK_CLIENT_PACKAGES) {

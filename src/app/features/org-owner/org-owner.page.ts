@@ -5,6 +5,7 @@ import { HeadquartersApi } from '../../core/api/headquarters.api';
 import { OrganizationsApi } from '../../core/api/organizations.api';
 import { UsersApi } from '../../core/api/users.api';
 import { Role } from '../../core/domain/models';
+import { UserScopeService } from '../../core/auth';
 
 @Component({
   selector: 'app-org-owner-page',
@@ -16,13 +17,8 @@ export class OrgOwnerPage {
   private readonly organizationsApi = inject(OrganizationsApi);
   private readonly headquartersApi = inject(HeadquartersApi);
   private readonly usersApi = inject(UsersApi);
-
-  private readonly ownerHeadquarters = toSignal(this.headquartersApi.getAll(), {
-    initialValue: [],
-  });
-  private readonly organizationId = computed(
-    () => this.ownerHeadquarters()[0]?.organizationId ?? null,
-  );
+  private readonly userScope = inject(UserScopeService);
+  private readonly organizationId = computed(() => this.userScope.organizationId());
 
   protected readonly organization = toSignal(
     toObservable(this.organizationId).pipe(

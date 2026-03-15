@@ -4,9 +4,9 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { firstValueFrom, of, switchMap } from 'rxjs';
 import { ActivitiesApi } from '../../core/api/activities.api';
 import { ClientPackagesApi } from '../../core/api/client-packages.api';
-import { HeadquartersApi } from '../../core/api/headquarters.api';
 import { CreatePaymentRequest, PaymentListItem, PaymentsApi } from '../../core/api/payments.api';
 import { UsersApi } from '../../core/api/users.api';
+import { UserScopeService } from '../../core/auth';
 import { PaymentMethod } from '../../core/domain/models';
 import { UiToastService } from '../../core/ui/toast.service';
 
@@ -16,8 +16,13 @@ interface RecentPaymentItem {
   paymentMethod: string;
   paidAt: string;
   userName: string;
-  activityName?: string;
-  tokens?: number;
+  activitiesSummary?: string;
+}
+
+interface PackageActivitySelection {
+  activityId: number;
+  activityName: string;
+  tokens: number;
 }
 
 @Component({
@@ -32,16 +37,11 @@ export class HqAdminPaymentsPage {
   private readonly usersApi = inject(UsersApi);
   private readonly activitiesApi = inject(ActivitiesApi);
   private readonly clientPackagesApi = inject(ClientPackagesApi);
-  private readonly headquartersApi = inject(HeadquartersApi);
+  private readonly userScope = inject(UserScopeService);
   private readonly toast = inject(UiToastService);
 
-  private readonly accessibleHeadquarters = toSignal(this.headquartersApi.getAll(), {
-    initialValue: [],
-  });
-  private readonly headquartersId = computed(() => this.accessibleHeadquarters()[0]?.id ?? null);
-  private readonly organizationId = computed(
-    () => this.accessibleHeadquarters()[0]?.organizationId ?? null,
-  );
+  private readonly headquartersId = computed(() => this.userScope.defaultHeadquartersId());
+  private readonly organizationId = computed(() => this.userScope.organizationId());
   private readonly pageSize = 12;
   private readonly paymentMethods = [
     PaymentMethod.CASH,
@@ -53,9 +53,12 @@ export class HqAdminPaymentsPage {
   protected readonly methodOptions = this.paymentMethods;
   protected readonly showForm = signal(false);
   protected readonly userQuery = signal('');
+  private readonly selectedUserName = signal('');
   protected readonly activityQuery = signal('');
   protected readonly showUserOptions = signal(false);
   protected readonly showActivityOptions = signal(false);
+  protected readonly packageActivitiesTouched = signal(false);
+  protected readonly packageActivities = signal<PackageActivitySelection[]>([]);
 
   protected readonly usersPage = toSignal(
     toObservable(
@@ -107,6 +110,9 @@ export class HqAdminPaymentsPage {
     { initialValue: null },
   );
   protected readonly activities = computed(() => this.activitiesPage()?.content ?? []);
+  protected readonly canShowPackageActivitiesError = computed(
+    () => this.packageActivitiesTouched() && this.packageActivities().length === 0,
+  );
 
   protected readonly paymentsByHqPage = toSignal(
     toObservable(this.headquartersId).pipe(
@@ -139,10 +145,6 @@ export class HqAdminPaymentsPage {
       nonNullable: true,
       validators: [Validators.required],
     }),
-    activityId: new FormControl(0, { nonNullable: true, validators: [Validators.min(1)] }),
-    tokens: new FormControl<number | null>(null, {
-      validators: [Validators.required, Validators.min(1)],
-    }),
   });
 
   protected paymentMethodLabel(method: string): string {
@@ -160,6 +162,15 @@ export class HqAdminPaymentsPage {
     }
   }
 
+  protected paymentDateLabel(isoDate: string): string {
+    const parsed = new Date(isoDate);
+    if (Number.isNaN(parsed.getTime())) {
+      return isoDate;
+    }
+
+    return parsed.toLocaleDateString('es-AR');
+  }
+
   protected openCreateForm(): void {
     this.showForm.set(true);
   }
@@ -167,15 +178,16 @@ export class HqAdminPaymentsPage {
   protected closeForm(): void {
     this.showForm.set(false);
     this.userQuery.set('');
+    this.selectedUserName.set('');
     this.activityQuery.set('');
     this.showUserOptions.set(false);
     this.showActivityOptions.set(false);
+    this.packageActivitiesTouched.set(false);
+    this.packageActivities.set([]);
     this.form.patchValue({
       userId: 0,
       amount: null,
       paymentMethod: PaymentMethod.CASH,
-      activityId: 0,
-      tokens: null,
     });
     this.form.markAsPristine();
     this.form.markAsUntouched();
@@ -183,6 +195,7 @@ export class HqAdminPaymentsPage {
 
   protected setUserSearch(value: string): void {
     this.userQuery.set(value);
+    this.selectedUserName.set('');
     this.showUserOptions.set(true);
     this.form.patchValue({ userId: 0 });
   }
@@ -190,7 +203,6 @@ export class HqAdminPaymentsPage {
   protected setActivitySearch(value: string): void {
     this.activityQuery.set(value);
     this.showActivityOptions.set(true);
-    this.form.patchValue({ activityId: 0 });
   }
 
   protected openUserSelector(): void {
@@ -203,8 +215,10 @@ export class HqAdminPaymentsPage {
 
   protected selectUser(userId: number): void {
     const user = this.users().find((item) => item.id === userId);
+    const userLabel = user ? `${user.name} ${user.lastName}`.trim() : '';
     this.form.patchValue({ userId });
     this.userQuery.set(user ? `${user.name} ${user.lastName} (${user.email})` : '');
+    this.selectedUserName.set(userLabel);
     this.showUserOptions.set(false);
   }
 
@@ -218,16 +232,46 @@ export class HqAdminPaymentsPage {
 
   protected selectActivity(activityId: number): void {
     const activity = this.activities().find((item) => item.id === activityId);
-    this.form.patchValue({ activityId });
-    this.activityQuery.set(activity?.name ?? '');
+    if (!activity) {
+      return;
+    }
+
+    const alreadyExists = this.packageActivities().some((item) => item.activityId === activityId);
+    if (!alreadyExists) {
+      this.packageActivities.update((current) => [
+        ...current,
+        {
+          activityId,
+          activityName: activity.name,
+          tokens: 1,
+        },
+      ]);
+    }
+
+    this.packageActivitiesTouched.set(true);
+    this.activityQuery.set('');
     this.showActivityOptions.set(false);
   }
 
-  protected activityName(activityId: number): string {
-    return (
-      this.activities().find((activity) => activity.id === activityId)?.name ??
-      `Actividad #${activityId}`
+  protected updatePackageActivityTokens(activityId: number, value: string): void {
+    const parsed = Number(value);
+    this.packageActivities.update((current) =>
+      current.map((item) =>
+        item.activityId === activityId
+          ? {
+              ...item,
+              tokens: Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0,
+            }
+          : item,
+      ),
     );
+  }
+
+  protected removePackageActivity(activityId: number): void {
+    this.packageActivities.update((current) =>
+      current.filter((item) => item.activityId !== activityId),
+    );
+    this.packageActivitiesTouched.set(true);
   }
 
   protected async createPaymentAndPackage(): Promise<void> {
@@ -236,11 +280,21 @@ export class HqAdminPaymentsPage {
       return;
     }
 
+    const selectedActivities = this.packageActivities();
+    if (!selectedActivities.length) {
+      this.packageActivitiesTouched.set(true);
+      this.toast.error('Agrega al menos una actividad al paquete.');
+      return;
+    }
+
+    if (selectedActivities.some((item) => item.tokens < 1)) {
+      this.toast.error('Los tokens de cada actividad deben ser mayores a 0.');
+      return;
+    }
+
     this.isSubmitting.set(true);
 
     const userId = this.form.controls.userId.value;
-    const activityId = this.form.controls.activityId.value;
-    const tokens = Number(this.form.controls.tokens.value);
     const amount = Number(this.form.controls.amount.value);
     const paymentMethod = this.form.controls.paymentMethod.value;
 
@@ -262,13 +316,17 @@ export class HqAdminPaymentsPage {
 
     try {
       const payment = await firstValueFrom(this.paymentsApi.create(paymentPayload));
+      const activityTokens = Object.fromEntries(
+        selectedActivities.map((item) => [String(item.activityId), item.tokens]),
+      );
       await firstValueFrom(
         this.clientPackagesApi.create(userId, {
           paymentId: payment.id,
-          activityTokens: { [String(activityId)]: tokens },
+          activityTokens,
         }),
       );
 
+      const selectedUserName = this.selectedUserName().trim();
       const user = this.users().find((item) => item.id === userId);
       this.createdPayments.update((current) => [
         {
@@ -276,9 +334,10 @@ export class HqAdminPaymentsPage {
           amount: payment.amount,
           paymentMethod: String(payment.paymentMethod),
           paidAt: payment.paidAt,
-          userName: user ? `${user.name} ${user.lastName}` : `Usuario #${userId}`,
-          activityName: this.activityName(activityId),
-          tokens,
+          userName:
+            selectedUserName ||
+            (user ? `${user.name} ${user.lastName}`.trim() : `Usuario #${userId}`),
+          activitiesSummary: this.activitiesSummary(selectedActivities),
         },
         ...current,
       ]);
@@ -293,12 +352,20 @@ export class HqAdminPaymentsPage {
   }
 
   private mapPaymentListItem(item: PaymentListItem): RecentPaymentItem {
+    const summaries =
+      item.activities?.map((activity) => activity.name).filter((name) => !!name?.trim()) ?? [];
+
     return {
       paymentId: item.id,
       amount: item.amount,
       paymentMethod: String(item.paymentMethod),
       paidAt: item.paidAt,
       userName: `${item.userName} ${item.userLastName}`,
+      activitiesSummary: summaries.length ? summaries.join(' + ') : undefined,
     };
+  }
+
+  private activitiesSummary(activities: PackageActivitySelection[]): string {
+    return activities.map((item) => item.activityName).join(' + ');
   }
 }

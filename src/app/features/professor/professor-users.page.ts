@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { of, switchMap } from 'rxjs';
-import { HeadquartersApi } from '../../core/api/headquarters.api';
+import { UserScopeService } from '../../core/auth';
 import { UsersApi } from '../../core/api/users.api';
 
 @Component({
@@ -14,11 +14,8 @@ import { UsersApi } from '../../core/api/users.api';
 export class ProfessorUsersPage {
   private readonly router = inject(Router);
   private readonly usersApi = inject(UsersApi);
-  private readonly headquartersApi = inject(HeadquartersApi);
-  private readonly accessibleHeadquarters = toSignal(this.headquartersApi.getAll(), {
-    initialValue: [],
-  });
-  private readonly headquartersId = computed(() => this.accessibleHeadquarters()[0]?.id ?? null);
+  private readonly userScope = inject(UserScopeService);
+  private readonly headquartersId = computed(() => this.userScope.defaultHeadquartersId());
   protected readonly openUserMenuId = signal<number | null>(null);
   protected readonly currentPage = signal(0);
   protected readonly searchQuery = signal('');

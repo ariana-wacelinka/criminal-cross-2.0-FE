@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { map, Observable, of } from 'rxjs';
+import { map, Observable, of, shareReplay } from 'rxjs';
 import {
   ApiResponse,
   SessionInstance,
@@ -116,6 +116,24 @@ export class SessionsApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
   private readonly apiMockMode = inject(API_MOCK_MODE);
+  private readonly pageCache = new Map<string, Observable<SessionPageResponse>>();
+  private readonly byIdCache = new Map<number, Observable<SessionInstance>>();
+
+  clearCache(): void {
+    this.pageCache.clear();
+    this.byIdCache.clear();
+  }
+
+  private cacheKey(query: GetSessionsQuery): string {
+    return JSON.stringify({
+      organizationId: query.organizationId ?? null,
+      headquartersId: query.headquartersId ?? null,
+      activityId: query.activityId ?? null,
+      page: query.page ?? null,
+      limit: query.limit ?? null,
+      sort: query.sort ?? null,
+    });
+  }
 
   getAll(query: GetSessionsQuery): Observable<SessionPageResponse> {
     if (this.apiMockMode) {
@@ -152,11 +170,19 @@ export class SessionsApi {
       });
     }
 
-    return this.http
+    const key = this.cacheKey(query);
+    const cached = this.pageCache.get(key);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.http
       .get<ApiResponse<SessionPageResponse> | SessionPageResponse>(`${this.baseUrl}/sessions`, {
         params: toHttpParams({ ...query, page: toBackendPage(query.page) }),
       })
-      .pipe(map(unwrapApiResponse), map(normalizeSessionsPage));
+      .pipe(map(unwrapApiResponse), map(normalizeSessionsPage), shareReplay(1));
+    this.pageCache.set(key, request$);
+    return request$;
   }
 
   getById(sessionId: number): Observable<SessionInstance> {
@@ -183,11 +209,19 @@ export class SessionsApi {
       );
     }
 
-    return this.http
+    const cached = this.byIdCache.get(sessionId);
+    if (cached) {
+      return cached;
+    }
+
+    const request$ = this.http
       .get<ApiResponse<SessionInstance> | SessionInstance>(`${this.baseUrl}/sessions/${sessionId}`)
       .pipe(
         map(unwrapApiResponse),
         map((session) => normalizeSession(session as BackendSessionInstance)),
+        shareReplay(1),
       );
+    this.byIdCache.set(sessionId, request$);
+    return request$;
   }
 }

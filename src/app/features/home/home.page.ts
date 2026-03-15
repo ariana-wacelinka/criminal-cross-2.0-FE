@@ -1,11 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { catchError, of, switchMap } from 'rxjs';
-import { HeadquartersApi } from '../../core/api/headquarters.api';
-import { OrganizationsApi } from '../../core/api/organizations.api';
-import { AuthFacadeService, AuthSessionService } from '../../core/auth';
-import { ClientContextService } from '../../core/client-context/client-context.service';
+import { AuthFacadeService, AuthSessionService, UserScopeService } from '../../core/auth';
 import { Role } from '../../core/domain/models';
 
 interface ShellNavItem {
@@ -23,9 +18,7 @@ interface ShellNavItem {
 export class HomePage {
   private readonly router = inject(Router);
   private readonly authFacade = inject(AuthFacadeService);
-  private readonly headquartersApi = inject(HeadquartersApi);
-  private readonly organizationsApi = inject(OrganizationsApi);
-  private readonly clientContext = inject(ClientContextService);
+  private readonly userScope = inject(UserScopeService);
 
   protected readonly authSession = inject(AuthSessionService);
   protected readonly currentRole = computed(() => {
@@ -41,28 +34,9 @@ export class HomePage {
   protected readonly isClientRole = computed(() => this.currentRole() === Role.CLIENT);
   protected readonly showRoleBadge = computed(() => !this.isClientRole());
 
-  private readonly accessibleHeadquarters = toSignal(this.headquartersApi.getAll(), {
-    initialValue: [],
-  });
-
-  private readonly currentOrganizationId = computed(() => {
-    if (this.isClientRole()) {
-      return this.clientContext.current()?.organizationId ?? null;
-    }
-
-    return this.accessibleHeadquarters()[0]?.organizationId ?? null;
-  });
-
-  private readonly currentOrganization = toSignal(
-    toObservable(this.currentOrganizationId).pipe(
-      switchMap((organizationId) => {
-        if (!organizationId) {
-          return of(null);
-        }
-        return this.organizationsApi.getById(organizationId).pipe(catchError(() => of(null)));
-      }),
-    ),
-    { initialValue: null },
+  private readonly accessibleHeadquarters = computed(() => this.userScope.headquarters());
+  private readonly currentOrganizationName = computed(
+    () => this.authSession.user()?.organization?.name ?? null,
   );
 
   protected readonly shellTitle = computed(() => {
@@ -70,7 +44,7 @@ export class HomePage {
       return 'ATHLIUM Staff';
     }
 
-    return this.currentOrganization()?.name ?? 'Mi organización';
+    return this.currentOrganizationName() ?? 'Mi organización';
   });
 
   protected readonly headerTitle = computed(() => {
@@ -78,7 +52,7 @@ export class HomePage {
       return 'ATHLIUM Inicio';
     }
 
-    return this.currentOrganization()?.name ?? 'Mi organización';
+    return this.currentOrganizationName() ?? 'Mi organización';
   });
   private readonly defaultHeadquartersId = computed(
     () => this.accessibleHeadquarters()[0]?.id ?? null,

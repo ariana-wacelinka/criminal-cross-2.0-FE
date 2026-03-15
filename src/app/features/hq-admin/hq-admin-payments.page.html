@@ -40,7 +40,7 @@
       </div>
 
       <div class="mt-4 grid gap-4 lg:grid-cols-2">
-        <label class="grid gap-2 text-sm">
+        <label class="grid content-start gap-2 self-start text-sm">
           <span class="text-athlium-muted">Usuario</span>
           <div class="relative">
             <input
@@ -64,7 +64,7 @@
                       <button
                         type="button"
                         class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
-                        (click)="selectUser(user.id)"
+                        (mousedown)="selectUser(user.id); $event.preventDefault()"
                       >
                         {{ user.name }} {{ user.lastName }} ({{ user.email }})
                       </button>
@@ -105,7 +105,7 @@
                       <button
                         type="button"
                         class="rounded-lg px-2 py-2 text-left text-sm text-athlium-text transition hover:bg-athlium-surface-2/40"
-                        (click)="selectActivity(activity.id)"
+                        (mousedown)="selectActivity(activity.id); $event.preventDefault()"
                       >
                         {{ activity.name }}
                       </button>
@@ -117,8 +117,40 @@
               </div>
             }
           </div>
-          @if (form.controls.activityId.invalid && form.controls.activityId.touched) {
-            <p class="text-xs text-red-300">Selecciona una actividad válida.</p>
+
+          @if (packageActivities().length) {
+            <div class="mt-2 grid gap-2">
+              @for (item of packageActivities(); track item.activityId) {
+                <div
+                  class="grid gap-2 rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 p-2 sm:grid-cols-[1fr_auto_auto] sm:items-center"
+                >
+                  <p class="text-sm font-medium">{{ item.activityName }}</p>
+                  <label class="grid gap-1 text-xs text-athlium-muted">
+                    <span>Tokens</span>
+                    <input
+                      type="number"
+                      min="1"
+                      [value]="item.tokens"
+                      (input)="
+                        updatePackageActivityTokens(item.activityId, $any($event.target).value)
+                      "
+                      class="w-24 appearance-none rounded-lg border border-athlium-primary/14 bg-athlium-primary-soft/60 px-2 py-1 text-sm text-athlium-text outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    class="rounded-lg border border-red-400/35 bg-red-500/10 px-3 py-1.5 text-xs text-red-200"
+                    (click)="removePackageActivity(item.activityId)"
+                  >
+                    Quitar
+                  </button>
+                </div>
+              }
+            </div>
+          }
+
+          @if (canShowPackageActivitiesError()) {
+            <p class="text-xs text-red-300">Agrega al menos una actividad al paquete.</p>
           }
         </label>
 
@@ -153,21 +185,10 @@
         </label>
 
         <label class="grid gap-2 text-sm lg:col-span-2">
-          <span class="text-athlium-muted">Tokens para la actividad</span>
-          <input
-            type="number"
-            min="1"
-            step="1"
-            class="appearance-none rounded-xl border border-athlium-primary/14 bg-athlium-primary-soft/60 px-3 py-2 text-sm text-athlium-text placeholder-athlium-muted outline-none ring-athlium-primary focus:border-athlium-primary/45 focus:ring-2"
-            formControlName="tokens"
-            placeholder="Ej: 10"
-          />
-          @if (form.controls.tokens.hasError('required') && form.controls.tokens.touched) {
-            <p class="text-xs text-red-300">Ingresa la cantidad de tokens.</p>
-          }
-          @if (form.controls.tokens.hasError('min') && form.controls.tokens.touched) {
-            <p class="text-xs text-red-300">Los tokens deben ser mayores a 0.</p>
-          }
+          <span class="text-athlium-muted">Arma el paquete</span>
+          <p class="text-xs text-athlium-muted">
+            Puedes agregar varias actividades y definir tokens por cada una.
+          </p>
         </label>
       </div>
 
@@ -201,7 +222,7 @@
         @for (item of paymentHistory(); track item.paymentId) {
           <article class="rounded-xl border border-athlium-primary/12 bg-athlium-surface-2/35 p-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <p class="font-semibold">Pago #{{ item.paymentId }} - {{ item.userName }}</p>
+              <p class="font-semibold">{{ paymentDateLabel(item.paidAt) }} - {{ item.userName }}</p>
               <span
                 class="rounded-full border border-athlium-primary/20 bg-athlium-primary/10 px-2 py-1 text-xs"
               >
@@ -210,11 +231,10 @@
             </div>
             <p class="mt-1 text-sm text-athlium-muted">
               ${{ item.amount }}
-              @if (item.activityName && item.tokens) {
-                | {{ item.activityName }} | {{ item.tokens }} tokens
+              @if (item.activitiesSummary) {
+                | {{ item.activitiesSummary }}
               }
             </p>
-            <p class="mt-1 text-xs text-athlium-muted">Fecha de pago: {{ item.paidAt }}</p>
           </article>
         }
       </div>

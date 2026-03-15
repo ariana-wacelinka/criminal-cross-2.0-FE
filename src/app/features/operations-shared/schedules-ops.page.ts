@@ -15,7 +15,7 @@ import {
   CreateActivityScheduleRequest,
 } from '../../core/api/activity-schedules.api';
 import { ActivitiesApi } from '../../core/api/activities.api';
-import { HeadquartersApi } from '../../core/api/headquarters.api';
+import { UserScopeService } from '../../core/auth';
 import { WeekDay } from '../../core/domain/models';
 import { UiToastService } from '../../core/ui/toast.service';
 
@@ -30,19 +30,15 @@ export class SchedulesOpsPage {
   private readonly route = inject(ActivatedRoute);
   private readonly schedulesApi = inject(ActivitySchedulesApi);
   private readonly activitiesApi = inject(ActivitiesApi);
-  private readonly headquartersApi = inject(HeadquartersApi);
+  private readonly userScope = inject(UserScopeService);
   private readonly toast = inject(UiToastService);
 
   private readonly scope = this.route.snapshot.data['scope'] as 'org' | 'hq';
   protected readonly title = this.scope === 'org' ? 'Horarios por sede' : 'Horarios';
   private readonly refreshTick = signal(0);
 
-  private readonly accessibleHeadquarters = toSignal(this.headquartersApi.getAll(), {
-    initialValue: [],
-  });
-  private readonly organizationId = computed(
-    () => this.accessibleHeadquarters()[0]?.organizationId ?? 0,
-  );
+  private readonly accessibleHeadquarters = computed(() => this.userScope.headquarters());
+  private readonly organizationId = computed(() => this.userScope.organizationId() ?? 0);
   private readonly defaultHeadquartersId = computed(
     () => this.accessibleHeadquarters()[0]?.id ?? 0,
   );
