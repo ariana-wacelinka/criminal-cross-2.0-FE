@@ -23,6 +23,7 @@ export interface PaymentListItem {
   userLastName: string;
   organizationId: number;
   headquartersId: number;
+  activities?: Array<{ id: number; name: string }>;
 }
 
 const MOCK_PAYMENT_LIST: PaymentListItem[] = Array.from({ length: 26 }, (_, index) => {

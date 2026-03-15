@@ -16,8 +16,13 @@ interface RecentPaymentItem {
   paymentMethod: string;
   paidAt: string;
   userName: string;
-  activityName?: string;
-  tokens?: number;
+  activitiesSummary?: string;
+}
+
+interface PackageActivitySelection {
+  activityId: number;
+  activityName: string;
+  tokens: number;
 }
 
 @Component({
@@ -52,6 +57,8 @@ export class HqAdminPaymentsPage {
   protected readonly activityQuery = signal('');
   protected readonly showUserOptions = signal(false);
   protected readonly showActivityOptions = signal(false);
+  protected readonly packageActivitiesTouched = signal(false);
+  protected readonly packageActivities = signal<PackageActivitySelection[]>([]);
 
   protected readonly usersPage = toSignal(
     toObservable(
@@ -103,6 +110,9 @@ export class HqAdminPaymentsPage {
     { initialValue: null },
   );
   protected readonly activities = computed(() => this.activitiesPage()?.content ?? []);
+  protected readonly canShowPackageActivitiesError = computed(
+    () => this.packageActivitiesTouched() && this.packageActivities().length === 0,
+  );
 
   protected readonly paymentsByHqPage = toSignal(
     toObservable(this.headquartersId).pipe(
@@ -134,10 +144,6 @@ export class HqAdminPaymentsPage {
     paymentMethod: new FormControl<PaymentMethod | string>(PaymentMethod.CASH, {
       nonNullable: true,
       validators: [Validators.required],
-    }),
-    activityId: new FormControl(0, { nonNullable: true, validators: [Validators.min(1)] }),
-    tokens: new FormControl<number | null>(null, {
-      validators: [Validators.required, Validators.min(1)],
     }),
   });
 
@@ -176,12 +182,12 @@ export class HqAdminPaymentsPage {
     this.activityQuery.set('');
     this.showUserOptions.set(false);
     this.showActivityOptions.set(false);
+    this.packageActivitiesTouched.set(false);
+    this.packageActivities.set([]);
     this.form.patchValue({
       userId: 0,
       amount: null,
       paymentMethod: PaymentMethod.CASH,
-      activityId: 0,
-      tokens: null,
     });
     this.form.markAsPristine();
     this.form.markAsUntouched();
@@ -197,7 +203,6 @@ export class HqAdminPaymentsPage {
   protected setActivitySearch(value: string): void {
     this.activityQuery.set(value);
     this.showActivityOptions.set(true);
-    this.form.patchValue({ activityId: 0 });
   }
 
   protected openUserSelector(): void {
@@ -227,16 +232,46 @@ export class HqAdminPaymentsPage {
 
   protected selectActivity(activityId: number): void {
     const activity = this.activities().find((item) => item.id === activityId);
-    this.form.patchValue({ activityId });
-    this.activityQuery.set(activity?.name ?? '');
+    if (!activity) {
+      return;
+    }
+
+    const alreadyExists = this.packageActivities().some((item) => item.activityId === activityId);
+    if (!alreadyExists) {
+      this.packageActivities.update((current) => [
+        ...current,
+        {
+          activityId,
+          activityName: activity.name,
+          tokens: 1,
+        },
+      ]);
+    }
+
+    this.packageActivitiesTouched.set(true);
+    this.activityQuery.set('');
     this.showActivityOptions.set(false);
   }
 
-  protected activityName(activityId: number): string {
-    return (
-      this.activities().find((activity) => activity.id === activityId)?.name ??
-      `Actividad #${activityId}`
+  protected updatePackageActivityTokens(activityId: number, value: string): void {
+    const parsed = Number(value);
+    this.packageActivities.update((current) =>
+      current.map((item) =>
+        item.activityId === activityId
+          ? {
+              ...item,
+              tokens: Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0,
+            }
+          : item,
+      ),
     );
+  }
+
+  protected removePackageActivity(activityId: number): void {
+    this.packageActivities.update((current) =>
+      current.filter((item) => item.activityId !== activityId),
+    );
+    this.packageActivitiesTouched.set(true);
   }
 
   protected async createPaymentAndPackage(): Promise<void> {
@@ -245,11 +280,21 @@ export class HqAdminPaymentsPage {
       return;
     }
 
+    const selectedActivities = this.packageActivities();
+    if (!selectedActivities.length) {
+      this.packageActivitiesTouched.set(true);
+      this.toast.error('Agrega al menos una actividad al paquete.');
+      return;
+    }
+
+    if (selectedActivities.some((item) => item.tokens < 1)) {
+      this.toast.error('Los tokens de cada actividad deben ser mayores a 0.');
+      return;
+    }
+
     this.isSubmitting.set(true);
 
     const userId = this.form.controls.userId.value;
-    const activityId = this.form.controls.activityId.value;
-    const tokens = Number(this.form.controls.tokens.value);
     const amount = Number(this.form.controls.amount.value);
     const paymentMethod = this.form.controls.paymentMethod.value;
 
@@ -271,10 +316,13 @@ export class HqAdminPaymentsPage {
 
     try {
       const payment = await firstValueFrom(this.paymentsApi.create(paymentPayload));
+      const activityTokens = Object.fromEntries(
+        selectedActivities.map((item) => [String(item.activityId), item.tokens]),
+      );
       await firstValueFrom(
         this.clientPackagesApi.create(userId, {
           paymentId: payment.id,
-          activityTokens: { [String(activityId)]: tokens },
+          activityTokens,
         }),
       );
 
@@ -289,8 +337,7 @@ export class HqAdminPaymentsPage {
           userName:
             selectedUserName ||
             (user ? `${user.name} ${user.lastName}`.trim() : `Usuario #${userId}`),
-          activityName: this.activityName(activityId),
-          tokens,
+          activitiesSummary: this.activitiesSummary(selectedActivities),
         },
         ...current,
       ]);
@@ -305,12 +352,20 @@ export class HqAdminPaymentsPage {
   }
 
   private mapPaymentListItem(item: PaymentListItem): RecentPaymentItem {
+    const summaries =
+      item.activities?.map((activity) => activity.name).filter((name) => !!name?.trim()) ?? [];
+
     return {
       paymentId: item.id,
       amount: item.amount,
       paymentMethod: String(item.paymentMethod),
       paidAt: item.paidAt,
       userName: `${item.userName} ${item.userLastName}`,
+      activitiesSummary: summaries.length ? summaries.join(' + ') : undefined,
     };
+  }
+
+  private activitiesSummary(activities: PackageActivitySelection[]): string {
+    return activities.map((item) => item.activityName).join(' + ');
   }
 }
