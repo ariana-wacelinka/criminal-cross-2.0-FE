@@ -56,6 +56,7 @@ export class ClientClassesPage {
   protected readonly selectedSessionId = signal<number | null>(null);
   private readonly localBookingsBySession = signal<Record<number, number>>({});
   private readonly sessionsReloadTick = signal(0);
+  protected readonly todayDate = signal(this.todayDateKey());
 
   protected readonly sessionsPage = toSignal(
     toObservable(this.sessionsReloadTick).pipe(
@@ -89,7 +90,12 @@ export class ClientClassesPage {
     return new Map<number, number>(entries);
   });
 
-  protected readonly sessions = computed(() => this.sessionsPage()?.items ?? []);
+  protected readonly sessions = computed(() => {
+    const today = this.todayDate();
+    return (this.sessionsPage()?.items ?? []).filter(
+      (session) => this.toDateKey(session.startsAt) >= today,
+    );
+  });
   protected readonly isLoading = computed(
     () => this.sessionsPage() === null || this.activitiesCatalog() === null,
   );
@@ -153,14 +159,19 @@ export class ClientClassesPage {
     effect(() => {
       const current = this.selectedDate();
       const days = this.calendarDays();
-      if (!current && days.length) {
+      if ((!current || !days.includes(current)) && days.length) {
         this.selectedDate.set(days[0]);
       }
     });
   }
 
   protected setDate(value: string): void {
-    this.selectedDate.set(value);
+    if (!value) {
+      return;
+    }
+
+    const safeDate = value < this.todayDate() ? this.todayDate() : value;
+    this.selectedDate.set(safeDate);
     this.selectedSessionId.set(null);
   }
 
@@ -183,6 +194,7 @@ export class ClientClassesPage {
       if (this.currentUserId) {
         this.clientPackagesApi.refreshUserPackages(this.currentUserId);
       }
+      this.sessionsApi.clearCache();
       this.sessionsReloadTick.update((value) => value + 1);
       this.toast.success('Reserva confirmada.');
     } catch (error) {
@@ -211,6 +223,7 @@ export class ClientClassesPage {
       if (this.currentUserId) {
         this.clientPackagesApi.refreshUserPackages(this.currentUserId);
       }
+      this.sessionsApi.clearCache();
       this.sessionsReloadTick.update((value) => value + 1);
       this.toast.success('Reserva cancelada.');
     } catch (error) {
@@ -291,7 +304,19 @@ export class ClientClassesPage {
   }
 
   private toDateKey(isoInstant: string): string {
-    return new Date(isoInstant).toISOString().slice(0, 10);
+    const date = new Date(isoInstant);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private todayDateKey(): string {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   private hourLabel(date: Date): string {
