@@ -3,8 +3,8 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { of, switchMap } from 'rxjs';
 import { ActivitiesApi } from '../../core/api/activities.api';
-import { HeadquartersApi } from '../../core/api/headquarters.api';
 import { UsersApi } from '../../core/api/users.api';
+import { UserScopeService } from '../../core/auth';
 
 @Component({
   selector: 'app-professor-page',
@@ -16,11 +16,8 @@ import { UsersApi } from '../../core/api/users.api';
 export class ProfessorPage {
   private readonly usersApi = inject(UsersApi);
   private readonly activitiesApi = inject(ActivitiesApi);
-  private readonly headquartersApi = inject(HeadquartersApi);
-  private readonly accessibleHeadquarters = toSignal(this.headquartersApi.getAll(), {
-    initialValue: [],
-  });
-  private readonly headquartersId = computed(() => this.accessibleHeadquarters()[0]?.id ?? null);
+  private readonly userScope = inject(UserScopeService);
+  private readonly headquartersId = computed(() => this.userScope.defaultHeadquartersId());
 
   protected readonly usersPage = toSignal(
     toObservable(this.headquartersId).pipe(

@@ -4,9 +4,9 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { firstValueFrom, of, switchMap } from 'rxjs';
 import { ActivitiesApi } from '../../core/api/activities.api';
 import { ClientPackagesApi } from '../../core/api/client-packages.api';
-import { HeadquartersApi } from '../../core/api/headquarters.api';
 import { CreatePaymentRequest, PaymentListItem, PaymentsApi } from '../../core/api/payments.api';
 import { UsersApi } from '../../core/api/users.api';
+import { UserScopeService } from '../../core/auth';
 import { PaymentMethod } from '../../core/domain/models';
 import { UiToastService } from '../../core/ui/toast.service';
 
@@ -32,16 +32,11 @@ export class HqAdminPaymentsPage {
   private readonly usersApi = inject(UsersApi);
   private readonly activitiesApi = inject(ActivitiesApi);
   private readonly clientPackagesApi = inject(ClientPackagesApi);
-  private readonly headquartersApi = inject(HeadquartersApi);
+  private readonly userScope = inject(UserScopeService);
   private readonly toast = inject(UiToastService);
 
-  private readonly accessibleHeadquarters = toSignal(this.headquartersApi.getAll(), {
-    initialValue: [],
-  });
-  private readonly headquartersId = computed(() => this.accessibleHeadquarters()[0]?.id ?? null);
-  private readonly organizationId = computed(
-    () => this.accessibleHeadquarters()[0]?.organizationId ?? null,
-  );
+  private readonly headquartersId = computed(() => this.userScope.defaultHeadquartersId());
+  private readonly organizationId = computed(() => this.userScope.organizationId());
   private readonly pageSize = 12;
   private readonly paymentMethods = [
     PaymentMethod.CASH,
@@ -53,6 +48,7 @@ export class HqAdminPaymentsPage {
   protected readonly methodOptions = this.paymentMethods;
   protected readonly showForm = signal(false);
   protected readonly userQuery = signal('');
+  private readonly selectedUserName = signal('');
   protected readonly activityQuery = signal('');
   protected readonly showUserOptions = signal(false);
   protected readonly showActivityOptions = signal(false);
@@ -160,6 +156,15 @@ export class HqAdminPaymentsPage {
     }
   }
 
+  protected paymentDateLabel(isoDate: string): string {
+    const parsed = new Date(isoDate);
+    if (Number.isNaN(parsed.getTime())) {
+      return isoDate;
+    }
+
+    return parsed.toLocaleDateString('es-AR');
+  }
+
   protected openCreateForm(): void {
     this.showForm.set(true);
   }
@@ -167,6 +172,7 @@ export class HqAdminPaymentsPage {
   protected closeForm(): void {
     this.showForm.set(false);
     this.userQuery.set('');
+    this.selectedUserName.set('');
     this.activityQuery.set('');
     this.showUserOptions.set(false);
     this.showActivityOptions.set(false);
@@ -183,6 +189,7 @@ export class HqAdminPaymentsPage {
 
   protected setUserSearch(value: string): void {
     this.userQuery.set(value);
+    this.selectedUserName.set('');
     this.showUserOptions.set(true);
     this.form.patchValue({ userId: 0 });
   }
@@ -203,8 +210,10 @@ export class HqAdminPaymentsPage {
 
   protected selectUser(userId: number): void {
     const user = this.users().find((item) => item.id === userId);
+    const userLabel = user ? `${user.name} ${user.lastName}`.trim() : '';
     this.form.patchValue({ userId });
     this.userQuery.set(user ? `${user.name} ${user.lastName} (${user.email})` : '');
+    this.selectedUserName.set(userLabel);
     this.showUserOptions.set(false);
   }
 
@@ -269,6 +278,7 @@ export class HqAdminPaymentsPage {
         }),
       );
 
+      const selectedUserName = this.selectedUserName().trim();
       const user = this.users().find((item) => item.id === userId);
       this.createdPayments.update((current) => [
         {
@@ -276,7 +286,9 @@ export class HqAdminPaymentsPage {
           amount: payment.amount,
           paymentMethod: String(payment.paymentMethod),
           paidAt: payment.paidAt,
-          userName: user ? `${user.name} ${user.lastName}` : `Usuario #${userId}`,
+          userName:
+            selectedUserName ||
+            (user ? `${user.name} ${user.lastName}`.trim() : `Usuario #${userId}`),
           activityName: this.activityName(activityId),
           tokens,
         },
