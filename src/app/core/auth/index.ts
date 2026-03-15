@@ -4,3 +4,4 @@ export * from './auth-session.service';
 export * from './auth-facade.service';
 export * from './auth.guard';
 export * from './auth-storage.service';
+export * from './user-scope.service';
